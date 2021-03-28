@@ -38,7 +38,7 @@ class Blockchain:
 
     def new_genesis_block(self):
         # tx = self.new_coinbase_tx(self.address, 'test reward')
-        block = self.new_block(0, ['testblock 0'], hashlib.sha256().digest())
+        block = self.new_block(-1, ['testblock 0'], hashlib.sha256().digest())
         return block
 
     def add_block(self, transactions):
@@ -62,92 +62,105 @@ class Blockchain:
         return tx
 
     # save blocks to files
-    def save_blocks(self, path='/data', metadata_path='/metadata.json'):
-        self.save_metadata(metadata_path)
+    def save_blocks(self, path='/data'):
         base_dir = os.getcwd() + path
         # if the directory not exists
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
 
+        self.save_metadata(path)
+
         # serialize the genesis block
-        with open(f'{base_dir}/genesis.json', 'w+') as f:
+        with open(f'{base_dir}/genesis', 'w+') as f:
             data = Block.serialize(self._blocks[0])
             f.write(data + '\n')
 
+        count = 0
+        index = 0
+        thres = 100
+        f = open(f'{base_dir}/data-{index}', 'w+')
         # serialize all blocks and save them to files
-        for index, block in enumerate(self._blocks[1:]):
-            with open(f'{base_dir}/data-{index}.json', 'w+') as f:
-                data = Block.serialize(block)
-                f.write(data + '\n')
+        for block in self._blocks[1:]:
+            index = count // thres
+            # each file contains "thres" record
+            if count != 0 and count % thres == 0:
+                f.close()
+                f = open(f'{base_dir}/data-{index}', 'w+')
+            data = Block.serialize(block)
+            count += 1
+            f.write(data + '\n')
 
-    def read_blocks(self, path='/data', metadata_path='/metadata.json'):
-        self.read_metadata(metadata_path)
+        f.close()
+
+    def read_blocks(self, path='/data'):
         base_dir = os.getcwd() + path
         # if the directory not exists
         if not os.path.exists(base_dir):
             return
+
+        self.read_metadata(path)
+
         # deserialize the genesis block
-        with open(f'{base_dir}/genesis.json', 'r') as f:
+        with open(f'{base_dir}/genesis', 'r') as f:
             data = f.read().strip('\n')
             block = Block.deserialize(data)
             self._blocks.append(block)
 
         # sort the file to get the right time sequence
         sort_dir = sorted(os.listdir(base_dir))
-        sort_dir.remove('genesis.json')
-        sort_dir.remove('metadata.json')
+        sort_dir.remove('genesis')
+        sort_dir.remove('metadata')
 
         # read data from each file under the directory
         for file in sort_dir:
             with open(f'{base_dir}/{file}', 'r') as f:
-                data = f.read().strip('\n')
-                block = Block.deserialize(data)
-                self._blocks.append(block)
+                for line in f:
+                    data = line.strip('\n')
+                    block = Block.deserialize(data)
+                    self._blocks.append(block)
 
-    def save_metadata(self, path='/metadata.json'):
+    def save_metadata(self, path='/data'):
         base_dir = os.getcwd() + path
-        # if the directory not exists
-        if not os.path.exists(base_dir):
-            os.mkdir(base_dir)
 
-        with open(f'{base_dir}/metadata.json', 'w+') as f:
+        with open(f'{base_dir}/metadata', 'w+') as f:
             d = {'bits': self.bits, 'subsidy': self.subsidy,
-                 'address': self.address_pool, 'height': len(self._blocks)}
+                 'address_pool': self.address_pool, 'height': len(self._blocks)}
             data = json.dumps(d)
             f.write(data + '\n')
 
     # read metadata like address from the file
-    def read_metadata(self, path='/metedata.json'):
+    def read_metadata(self, path='/data'):
         base_dir = os.getcwd() + path
         # if the directory not exists
         if not os.path.exists(base_dir):
             return
 
-        with open(path, 'r') as f:
-            raw_data = f.read().split('\n')
-            metadata = json.load(raw_data)
+        with open(f'{base_dir}/metadata', 'r') as f:
+            raw_data = f.read().strip('\n')
+            metadata = json.loads(raw_data)
             self.bits = metadata['bits']
             self.subsidy = metadata['subsidy']
             self.address_pool = metadata['address_pool']
-            self.length = metadata['length']
+            self.height = metadata['height']
+
+
+def test_save_blocks():
+    blockchain = Blockchain()
+
+    blockchain.initialize('my address')
+    for i in range(1, 1001):
+        blockchain.add_block([f'test block {i}'])
+
+    blockchain.print_blocks()
+    blockchain.save_blocks()
+
+
+def test_read_blocks():
+    blockchain = Blockchain()
+    blockchain.read_blocks()
+    blockchain.print_blocks()
 
 
 if __name__ == '__main__':
-    blockchain = Blockchain()
-
-    # blockchain.initialize('my address')
-    # blockchain.add_block(['test block 1'])
-    # blockchain.add_block(['test block 2'])
-    # blockchain.add_block(['test block 3'])
-    # blockchain.add_block(['test block 4'])
-    # blockchain.add_block(['test block 5'])
-    # blockchain.add_block(['test block 6'])
-    # blockchain.add_block(['test block 7'])
-    # blockchain.add_block(['test block 8'])
-    # blockchain.add_block(['test block 9'])
-    # blockchain.add_block(['test block 10'])
-
-    # blockchain.print_blocks()
-    # blockchain.save_blocks()
-    blockchain.read_blocks()
-    blockchain.print_blocks()
+    # test_save_blocks()
+    test_read_blocks()
