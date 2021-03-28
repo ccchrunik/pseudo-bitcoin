@@ -23,22 +23,26 @@ class Blockchain:
         self.threshold = 100
         self.data_path = '/data'
         self.base_dir = os.getcwd() + self.data_path
-        self.file = None
+        self.data_file = None
+        self.address_file = None
 
     def initialize(self, name):
-        self.create_user(name)
+
         self._blocks.append(self.new_genesis_block())
 
         # initialize the blockchain metadata and block file handler
         self.save_metadata()
         self.save_genesis_data()
-        self.file = open(f'{self.base_dir}/data-0', 'w+')
+        self.address_file = open(f'{self.base_dir}/address', 'w+')
+        self.data_file = open(f'{self.base_dir}/data-0', 'w+')
+        self.create_user(name)
+        self.address_pool[name] += 50
 
     def create_user(self, name):
         if name not in self.address_pool:
             self.address_pool[name] = 0
-            # update the metadata
-            self.save_metadata()
+            # update the address
+            self.save_address_data((name, 0))
         else:
             print('User name exist! Please choose another name as your address!')
 
@@ -77,6 +81,7 @@ class Blockchain:
     # save blocks to files
     def save_blocks(self, path='/data'):
         self.save_metadata(path)
+        self.save_address_pool_data(path)
         self.save_genesis_data(path)
         self.save_blocks_data(path)
 
@@ -88,10 +93,26 @@ class Blockchain:
 
         # save the metadata of the blockchain
         with open(f'{base_dir}/metadata', 'w+') as f:
-            d = {'bits': self.bits, 'subsidy': self.subsidy, 'address_pool': self.address_pool,
-                 'height': len(self._blocks), 'count': self.count, 'index': self.index}
+            d = {'bits': self.bits, 'subsidy': self.subsidy, 'height': len(
+                self._blocks), 'count': self.count, 'index': self.index}
             data = json.dumps(d)
             f.write(data + '\n')
+
+    def save_address_data(self, addr):
+        # save the metadata of the blockchain
+        key, value = addr
+        d = {key: value}
+        data = json.dumps(d)
+        self.address_file.write(data + '\n')
+
+    def save_address_pool_data(self, path='/data'):
+        base_dir = os.getcwd() + path
+        # save the metadata of the blockchain
+        with open(f'{self.base_dir}/address', 'w+') as f:
+            for key, value in self.address_pool.items():
+                d = {key: value}
+                data = json.dumps(d)
+                f.write(data + '\n')
 
     def save_genesis_data(self, path='/data'):
         base_dir = os.getcwd() + path
@@ -102,15 +123,15 @@ class Blockchain:
             f.write(data + '\n')
 
     # used for forcibly save all blocks
-    def save_blocks_data(self):
-        base_dir = self.base_dir
+    def save_blocks_data(self, path='/data'):
+        base_dir = os.getcwd() + path
         count = 0
         index = 0
         threshold = 100
         f = open(f'{base_dir}/data-{index}', 'w+')
         # serialize all blocks and save them to files
         for block in self._blocks[1:]:
-            index = count // thres
+            index = count // threshold
             # each file contains "thres" record
             if count != 0 and count % threshold == 0:
                 f.close()
@@ -125,17 +146,19 @@ class Blockchain:
     def save_block_data(self, block):
         # serialize the block and save it to the file
         data = Block.serialize(block)
-
+        self.index = self.count // self.threshold
         # create a new file for incoming data
         if self.count != 0 and self.count % self.threshold == 0:
-            self.file.close()
-            self.file = open(f'{self.base_dir}/data-{self.index}', 'w+')
+            self.data_file.close()
+            self.data_file = open(f'{self.base_dir}/data-{self.index}', 'w+')
 
         self.count += 1
-        self.file.write(data + '\n')
+        self.data_file.write(data + '\n')
+        self.save_metadata()
 
     def read_blocks(self, path='/data'):
         self.read_metadata(path)
+        self.read_address_pool_data(path)
         self.read_genesis_data(path)
         self.read_blocks_data(path)
 
@@ -152,10 +175,21 @@ class Blockchain:
             metadata = json.loads(raw_data)
             self.bits = metadata['bits']
             self.subsidy = metadata['subsidy']
-            self.address_pool = metadata['address_pool']
             self.height = metadata['height']
             self.count = metadata['count']
             self.index = metadata['index']
+
+    def read_address_pool_data(self, path='/data'):
+        base_dir = os.getcwd() + path
+
+        # read address data
+        with open(f'{base_dir}/address', 'r') as f:
+            for line in f:
+                raw_data = line.strip('\n')
+                print(raw_data)
+                address = json.loads(raw_data)
+                for key, value in address.items():
+                    self.address_pool[key] = value
 
     def read_genesis_data(self, path='/data'):
         base_dir = os.getcwd() + path
@@ -172,6 +206,7 @@ class Blockchain:
         sort_dir = sorted(os.listdir(base_dir))
         sort_dir.remove('genesis')
         sort_dir.remove('metadata')
+        sort_dir.remove('address')
 
         # read data from each file under the directory
         for file in sort_dir:
@@ -181,12 +216,19 @@ class Blockchain:
                     block = Block.deserialize(data)
                     self._blocks.append(block)
 
+    # shutdown the blockchain
+    def freeze(self):
+        self.data_file.close()
+
 
 def test_save_blocks():
     blockchain = Blockchain()
 
-    blockchain.initialize('my address')
+    blockchain.initialize('my address 0')
     for i in range(1, 11):
+        blockchain.create_user(f'my address {i}')
+
+    for i in range(1, 201):
         blockchain.add_block([f'test block {i}'])
 
     blockchain.print_blocks()
@@ -197,8 +239,9 @@ def test_read_blocks():
     blockchain = Blockchain()
     blockchain.read_blocks()
     blockchain.print_blocks()
+    print(blockchain.address_pool)
 
 
 if __name__ == '__main__':
-    test_save_blocks()
-    # test_read_blocks()
+    # test_save_blocks()
+    test_read_blocks()
