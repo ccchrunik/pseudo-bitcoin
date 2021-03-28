@@ -3,6 +3,7 @@ import os
 import base64
 import time
 import hashlib
+import json
 from configparser import ConfigParser
 # my block file
 from Block import Block
@@ -15,23 +16,29 @@ class Blockchain:
         self._blocks = []
         self.bits = 10
         self.subsidy = 50
-        self.address = ''
+        self.address_pool = dict()
         self.height = 0
 
-    def initialize(self, address):
-        self.address = address
+    def initialize(self, name):
+        self.create_user(name)
         self._blocks.append(self.new_genesis_block())
 
+    def create_user(self, name):
+        if name not in self.address_pool:
+            self.address_pool[name] = 0
+        else:
+            print('User name exist! Please choose another name as your address!')
+
     def new_block(self, prev_height, transactions, prev_hash):
-        # tx =
+
         block = Block(prev_height, time.time(), self.bits,
                       0, transactions, prev_hash)
         block.set_hash()
         return block
 
     def new_genesis_block(self):
-        tx = self.new_coinbase_tx(self.address, 'test reward')
-        block = self.new_block(0, [tx], hashlib.sha256().digest())
+        # tx = self.new_coinbase_tx(self.address, 'test reward')
+        block = self.new_block(0, ['testblock 0'], hashlib.sha256().digest())
         return block
 
     def add_block(self, transactions):
@@ -44,8 +51,19 @@ class Blockchain:
         for block in self._blocks:
             print(block)
 
+    def new_coinbase_tx(self, to, data):
+        if data == '':
+            data = f'Reward to {to}'
+
+        txin = TxInput('', -1, data)
+        txout = TxOutput(self.subsidy, to)
+        tx = Transaction(None, [txin], [txout])
+
+        return tx
+
     # save blocks to files
-    def save_blocks(self, path='/data'):
+    def save_blocks(self, path='/data', metadata_path='/metadata.json'):
+        self.save_metadata(metadata_path)
         base_dir = os.getcwd() + path
         # if the directory not exists
         if not os.path.exists(base_dir):
@@ -62,7 +80,8 @@ class Blockchain:
                 data = Block.serialize(block)
                 f.write(data + '\n')
 
-    def read_blocks(self, path='/data'):
+    def read_blocks(self, path='/data', metadata_path='/metadata.json'):
+        self.read_metadata(metadata_path)
         base_dir = os.getcwd() + path
         # if the directory not exists
         if not os.path.exists(base_dir):
@@ -76,6 +95,7 @@ class Blockchain:
         # sort the file to get the right time sequence
         sort_dir = sorted(os.listdir(base_dir))
         sort_dir.remove('genesis.json')
+        sort_dir.remove('metadata.json')
 
         # read data from each file under the directory
         for file in sort_dir:
@@ -83,16 +103,6 @@ class Blockchain:
                 data = f.read().strip('\n')
                 block = Block.deserialize(data)
                 self._blocks.append(block)
-
-    def new_coinbase_tx(self, to, data):
-        if data == '':
-            data = f'Reward to {to}'
-
-        txin = TxInput('', -1, data)
-        txout = TxOutput(self.subsidy, to)
-        tx = Transaction(None, [txin], [txout])
-
-        return tx
 
     def save_metadata(self, path='/metadata.json'):
         base_dir = os.getcwd() + path
@@ -102,7 +112,7 @@ class Blockchain:
 
         with open(f'{base_dir}/metadata.json', 'w+') as f:
             d = {'bits': self.bits, 'subsidy': self.subsidy,
-                 'address': self.address, 'height': len(self._blocks)}
+                 'address': self.address_pool, 'height': len(self._blocks)}
             data = json.dumps(d)
             f.write(data + '\n')
 
@@ -118,18 +128,18 @@ class Blockchain:
             metadata = json.load(raw_data)
             self.bits = metadata['bits']
             self.subsidy = metadata['subsidy']
-            self.address = metadata['address']
+            self.address_pool = metadata['address_pool']
             self.length = metadata['length']
 
 
 if __name__ == '__main__':
     blockchain = Blockchain()
 
-    blockchain.initialize('my address')
-    blockchain.add_block(['test block 1'])
-    blockchain.add_block(['test block 2'])
-    blockchain.add_block(['test block 3'])
-    blockchain.add_block(['test block 4'])
+    # blockchain.initialize('my address')
+    # blockchain.add_block(['test block 1'])
+    # blockchain.add_block(['test block 2'])
+    # blockchain.add_block(['test block 3'])
+    # blockchain.add_block(['test block 4'])
     # blockchain.add_block(['test block 5'])
     # blockchain.add_block(['test block 6'])
     # blockchain.add_block(['test block 7'])
@@ -137,7 +147,7 @@ if __name__ == '__main__':
     # blockchain.add_block(['test block 9'])
     # blockchain.add_block(['test block 10'])
 
-    blockchain.print_blocks()
-    blockchain.save_blocks()
-    # blockchain.read_blocks()
     # blockchain.print_blocks()
+    # blockchain.save_blocks()
+    blockchain.read_blocks()
+    blockchain.print_blocks()
