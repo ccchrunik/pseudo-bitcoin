@@ -18,6 +18,8 @@ class Blockchain:
         self.subsidy = 50
         self.address_pool = dict()
         self.height = 0
+        self.count = 0
+        self.index = 0
 
     def initialize(self, name):
         self.create_user(name)
@@ -63,17 +65,38 @@ class Blockchain:
 
     # save blocks to files
     def save_blocks(self, path='/data'):
+        self.save_metadata(path)
+        self.save_genesis_data(path)
+        self.save_blocks_data(path)
+
+    def save_metadata(self, path='/data'):
         base_dir = os.getcwd() + path
         # if the directory not exists
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
 
-        self.save_metadata(path)
-
-        # serialize the genesis block
+        # save the genesis block
         with open(f'{base_dir}/genesis', 'w+') as f:
             data = Block.serialize(self._blocks[0])
             f.write(data + '\n')
+
+        # save the metadata of the blockchain
+        with open(f'{base_dir}/metadata', 'w+') as f:
+            d = {'bits': self.bits, 'subsidy': self.subsidy, 'address_pool': self.address_pool,
+                 'height': len(self._blocks), 'count': self.count, 'index': self.index}
+            data = json.dumps(d)
+            f.write(data + '\n')
+
+    def save_genesis_data(self, path='/data'):
+        base_dir = os.getcwd() + path
+
+        # save the genesis block
+        with open(f'{base_dir}/genesis', 'w+') as f:
+            data = Block.serialize(self._blocks[0])
+            f.write(data + '\n')
+
+    def save_blocks_data(self, path='/data'):
+        base_dir = os.getcwd() + path
 
         count = 0
         index = 0
@@ -93,18 +116,38 @@ class Blockchain:
         f.close()
 
     def read_blocks(self, path='/data'):
+        self.read_metadata(path)
+        self.read_genesis_data(path)
+        self.read_blocks_data(path)
+
+    # read metadata like address from the file
+    def read_metadata(self, path='/data'):
         base_dir = os.getcwd() + path
         # if the directory not exists
         if not os.path.exists(base_dir):
             return
 
-        self.read_metadata(path)
+        # read metadata
+        with open(f'{base_dir}/metadata', 'r') as f:
+            raw_data = f.read().strip('\n')
+            metadata = json.loads(raw_data)
+            self.bits = metadata['bits']
+            self.subsidy = metadata['subsidy']
+            self.address_pool = metadata['address_pool']
+            self.height = metadata['height']
+            self.count = metadata['count']
+            self.index = metadata['index']
 
-        # deserialize the genesis block
+    def read_genesis_data(self, path='/data'):
+        base_dir = os.getcwd() + path
+        # read the genesis block
         with open(f'{base_dir}/genesis', 'r') as f:
             data = f.read().strip('\n')
             block = Block.deserialize(data)
             self._blocks.append(block)
+
+    def read_blocks_data(self, path='/data'):
+        base_dir = os.getcwd() + path
 
         # sort the file to get the right time sequence
         sort_dir = sorted(os.listdir(base_dir))
@@ -119,36 +162,12 @@ class Blockchain:
                     block = Block.deserialize(data)
                     self._blocks.append(block)
 
-    def save_metadata(self, path='/data'):
-        base_dir = os.getcwd() + path
-
-        with open(f'{base_dir}/metadata', 'w+') as f:
-            d = {'bits': self.bits, 'subsidy': self.subsidy,
-                 'address_pool': self.address_pool, 'height': len(self._blocks)}
-            data = json.dumps(d)
-            f.write(data + '\n')
-
-    # read metadata like address from the file
-    def read_metadata(self, path='/data'):
-        base_dir = os.getcwd() + path
-        # if the directory not exists
-        if not os.path.exists(base_dir):
-            return
-
-        with open(f'{base_dir}/metadata', 'r') as f:
-            raw_data = f.read().strip('\n')
-            metadata = json.loads(raw_data)
-            self.bits = metadata['bits']
-            self.subsidy = metadata['subsidy']
-            self.address_pool = metadata['address_pool']
-            self.height = metadata['height']
-
 
 def test_save_blocks():
     blockchain = Blockchain()
 
     blockchain.initialize('my address')
-    for i in range(1, 1001):
+    for i in range(1, 11):
         blockchain.add_block([f'test block {i}'])
 
     blockchain.print_blocks()
@@ -162,5 +181,5 @@ def test_read_blocks():
 
 
 if __name__ == '__main__':
-    # test_save_blocks()
-    test_read_blocks()
+    test_save_blocks()
+    # test_read_blocks()

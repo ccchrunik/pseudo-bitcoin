@@ -55,7 +55,7 @@ class Block:
     @staticmethod
     def deserialize(raw_data):
         data = json.loads(raw_data)
-        print(data)
+        # print(data)
         height = data['height']
         time = data['time']
         bits = data['bits']
