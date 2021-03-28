@@ -1,0 +1,3 @@
+[secret]
+salt = this_is_a_salt_to_imporve_security
+init_time = 1616408474

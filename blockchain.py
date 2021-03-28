@@ -1,100 +1,143 @@
 import sys
 import os
-import hashlib
-import json
 import base64
 import time
+import hashlib
 from configparser import ConfigParser
-
-
-class Block:
-    def __init__(self, prev_hash, time, bits, nonce, transactions):
-        self.height = 1
-        self.prev_hash = prev_hash
-        self.time = time
-        self.bits = bits
-        self.nonce = nonce
-        # transactions is a list
-        self.transactions = transactions
-
-        cfg = ConfigParser()
-        cfg.read('./utils/config.txt')
-        salt = cfg['secret']['salt'].encode()
-        txdata = ':'.join(transactions).encode()
-        prev_block_hash = base64.b64encode(self.prev_hash)
-
-        data = str(self.height).encode() + str(time).encode() + str(bits).encode() + \
-            str(nonce).encode() + txdata + prev_block_hash
-
-        m = hashlib.sha256()
-        m.update(salt + data)
-        self.hash = m.digest()
-
-    def __str__(self):
-        print(f"Block Information: ")
-        print(f"---")
-        print(f"height: {self.height}")
-        print(f"time: {self.time}")
-        print(f"hardness: {self.bits}")
-        print(f"nonce: {self.nonce}")
-        print(f"transactions: {self.transactions}")
-        print(f"previous hash: {self.prev_hash}")
-        print(f"hash: {self.hash}")
-        print(f"---")
-        return ''
-
-    def compress(self):
-        prev_hash = base64.b64encode(self.prev_hash).decode()
-        block_hash = base64.b64encode(self.hash).decode()
-        print(prev_hash)
-        print(block_hash)
-        d = {'height': self.height, 'bits': self.bits, 'time': self.time, 'nonce': self.nonce,
-             'transactions': self.transactions, 'prev_block_hash': prev_hash, 'hash': block_hash}
-        data = json.dumps(d)
-        print(data)
-        return data
+# my block file
+from Block import Block
+from PoW import PoW
+from Transaction import TxInput, TxOutput, Transaction
 
 
 class Blockchain:
     def __init__(self):
         self._blocks = []
+        self.bits = 10
+        self.subsidy = 50
+        self.address = ''
+        self.height = 0
+
+    def initialize(self, address):
+        self.address = address
+        self._blocks.append(self.new_genesis_block())
+
+    def new_block(self, prev_height, transactions, prev_hash):
+        # tx =
+        block = Block(prev_height, time.time(), self.bits,
+                      0, transactions, prev_hash)
+        block.set_hash()
+        return block
+
+    def new_genesis_block(self):
+        tx = self.new_coinbase_tx(self.address, 'test reward')
+        block = self.new_block(0, [tx], hashlib.sha256().digest())
+        return block
+
+    def add_block(self, transactions):
+        prev_block = self._blocks[-1]
+        new_block = self.new_block(
+            prev_block.height, transactions, prev_block.hash)
+        self._blocks.append(new_block)
 
     def print_blocks(self):
         for block in self._blocks:
             print(block)
 
+    # save blocks to files
     def save_blocks(self, path='/data'):
         base_dir = os.getcwd() + path
+        # if the directory not exists
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
 
-        for index, block in enumerate(self._blocks):
+        # serialize the genesis block
+        with open(f'{base_dir}/genesis.json', 'w+') as f:
+            data = Block.serialize(self._blocks[0])
+            f.write(data + '\n')
+
+        # serialize all blocks and save them to files
+        for index, block in enumerate(self._blocks[1:]):
             with open(f'{base_dir}/data-{index}.json', 'w+') as f:
-                data = block.compress()
+                data = Block.serialize(block)
                 f.write(data + '\n')
 
     def read_blocks(self, path='/data'):
-        pass
+        base_dir = os.getcwd() + path
+        # if the directory not exists
+        if not os.path.exists(base_dir):
+            return
+        # deserialize the genesis block
+        with open(f'{base_dir}/genesis.json', 'r') as f:
+            data = f.read().strip('\n')
+            block = Block.deserialize(data)
+            self._blocks.append(block)
 
-    def new_block(self, prev_hash, time, bits, nonce, transactions):
-        block = Block(prev_hash, time, bits, nonce, transactions)
-        self.add_block(block)
-        return block
+        # sort the file to get the right time sequence
+        sort_dir = sorted(os.listdir(base_dir))
+        sort_dir.remove('genesis.json')
 
-    def new_genesis_block(self):
-        block = Block(hashlib.sha256().digest(), 1616408474,
-                      10, 234325325, ['the genesis block', 'test block', 'I am handsome'])
-        self.add_block(block)
-        return block
+        # read data from each file under the directory
+        for file in sort_dir:
+            with open(f'{base_dir}/{file}', 'r') as f:
+                data = f.read().strip('\n')
+                block = Block.deserialize(data)
+                self._blocks.append(block)
 
-    def add_block(self, block):
-        self._blocks.append(block)
+    def new_coinbase_tx(self, to, data):
+        if data == '':
+            data = f'Reward to {to}'
+
+        txin = TxInput('', -1, data)
+        txout = TxOutput(self.subsidy, to)
+        tx = Transaction(None, [txin], [txout])
+
+        return tx
+
+    def save_metadata(self, path='/metadata.json'):
+        base_dir = os.getcwd() + path
+        # if the directory not exists
+        if not os.path.exists(base_dir):
+            os.mkdir(base_dir)
+
+        with open(f'{base_dir}/metadata.json', 'w+') as f:
+            d = {'bits': self.bits, 'subsidy': self.subsidy,
+                 'address': self.address, 'height': len(self._blocks)}
+            data = json.dumps(d)
+            f.write(data + '\n')
+
+    # read metadata like address from the file
+    def read_metadata(self, path='/metedata.json'):
+        base_dir = os.getcwd() + path
+        # if the directory not exists
+        if not os.path.exists(base_dir):
+            return
+
+        with open(path, 'r') as f:
+            raw_data = f.read().split('\n')
+            metadata = json.load(raw_data)
+            self.bits = metadata['bits']
+            self.subsidy = metadata['subsidy']
+            self.address = metadata['address']
+            self.length = metadata['length']
 
 
 if __name__ == '__main__':
     blockchain = Blockchain()
-    genesis_block = blockchain.new_genesis_block()
-    blockchain.new_block(genesis_block.hash, time.time(),
-                         10, 23412341431421, ['test block 2'])
+
+    blockchain.initialize('my address')
+    blockchain.add_block(['test block 1'])
+    blockchain.add_block(['test block 2'])
+    blockchain.add_block(['test block 3'])
+    blockchain.add_block(['test block 4'])
+    # blockchain.add_block(['test block 5'])
+    # blockchain.add_block(['test block 6'])
+    # blockchain.add_block(['test block 7'])
+    # blockchain.add_block(['test block 8'])
+    # blockchain.add_block(['test block 9'])
+    # blockchain.add_block(['test block 10'])
+
     blockchain.print_blocks()
     blockchain.save_blocks()
+    # blockchain.read_blocks()
+    # blockchain.print_blocks()
