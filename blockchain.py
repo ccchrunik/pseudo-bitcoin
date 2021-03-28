@@ -20,19 +20,29 @@ class Blockchain:
         self.height = 0
         self.count = 0
         self.index = 0
+        self.threshold = 100
+        self.data_path = '/data'
+        self.base_dir = os.getcwd() + self.data_path
+        self.file = None
 
     def initialize(self, name):
         self.create_user(name)
         self._blocks.append(self.new_genesis_block())
 
+        # initialize the blockchain metadata and block file handler
+        self.save_metadata()
+        self.save_genesis_data()
+        self.file = open(f'{self.base_dir}/data-0', 'w+')
+
     def create_user(self, name):
         if name not in self.address_pool:
             self.address_pool[name] = 0
+            # update the metadata
+            self.save_metadata()
         else:
             print('User name exist! Please choose another name as your address!')
 
     def new_block(self, prev_height, transactions, prev_hash):
-
         block = Block(prev_height, time.time(), self.bits,
                       0, transactions, prev_hash)
         block.set_hash()
@@ -48,6 +58,7 @@ class Blockchain:
         new_block = self.new_block(
             prev_block.height, transactions, prev_block.hash)
         self._blocks.append(new_block)
+        self.save_block_data(new_block)
 
     def print_blocks(self):
         for block in self._blocks:
@@ -75,11 +86,6 @@ class Blockchain:
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
 
-        # save the genesis block
-        with open(f'{base_dir}/genesis', 'w+') as f:
-            data = Block.serialize(self._blocks[0])
-            f.write(data + '\n')
-
         # save the metadata of the blockchain
         with open(f'{base_dir}/metadata', 'w+') as f:
             d = {'bits': self.bits, 'subsidy': self.subsidy, 'address_pool': self.address_pool,
@@ -95,18 +101,18 @@ class Blockchain:
             data = Block.serialize(self._blocks[0])
             f.write(data + '\n')
 
-    def save_blocks_data(self, path='/data'):
-        base_dir = os.getcwd() + path
-
+    # used for forcibly save all blocks
+    def save_blocks_data(self):
+        base_dir = self.base_dir
         count = 0
         index = 0
-        thres = 100
+        threshold = 100
         f = open(f'{base_dir}/data-{index}', 'w+')
         # serialize all blocks and save them to files
         for block in self._blocks[1:]:
             index = count // thres
             # each file contains "thres" record
-            if count != 0 and count % thres == 0:
+            if count != 0 and count % threshold == 0:
                 f.close()
                 f = open(f'{base_dir}/data-{index}', 'w+')
             data = Block.serialize(block)
@@ -114,6 +120,19 @@ class Blockchain:
             f.write(data + '\n')
 
         f.close()
+
+    # dynamically save a block when we add a block to the blockchain
+    def save_block_data(self, block):
+        # serialize the block and save it to the file
+        data = Block.serialize(block)
+
+        # create a new file for incoming data
+        if self.count != 0 and self.count % self.threshold == 0:
+            self.file.close()
+            self.file = open(f'{self.base_dir}/data-{self.index}', 'w+')
+
+        self.count += 1
+        self.file.write(data + '\n')
 
     def read_blocks(self, path='/data'):
         self.read_metadata(path)
@@ -171,7 +190,7 @@ def test_save_blocks():
         blockchain.add_block([f'test block {i}'])
 
     blockchain.print_blocks()
-    blockchain.save_blocks()
+    # blockchain.save_blocks()
 
 
 def test_read_blocks():
