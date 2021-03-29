@@ -161,6 +161,8 @@ class Blockchain:
         self.read_address_pool_data(path)
         self.read_genesis_data(path)
         self.read_blocks_data(path)
+        self.address_file = open(f'{self.base_dir}/address', 'a+')
+        self.data_file = open(f'{self.base_dir}/data-{self.index}', 'a+')
 
     # read metadata like address from the file
     def read_metadata(self, path='/data'):
@@ -186,7 +188,7 @@ class Blockchain:
         with open(f'{base_dir}/address', 'r') as f:
             for line in f:
                 raw_data = line.strip('\n')
-                print(raw_data)
+                # print(raw_data)
                 address = json.loads(raw_data)
                 for key, value in address.items():
                     self.address_pool[key] = value
@@ -239,7 +241,7 @@ def test_read_blocks():
     blockchain = Blockchain()
     blockchain.read_blocks()
     blockchain.print_blocks()
-    print(blockchain.address_pool)
+    # print(blockchain.address_pool)
 
 
 if __name__ == '__main__':
