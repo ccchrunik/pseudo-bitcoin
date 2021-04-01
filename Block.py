@@ -28,7 +28,7 @@ class Block:
         print(f"time: {self.time}")
         print(f"hardness: {self.bits}")
         print(f"nonce: {self.nonce}")
-        print(f"transactions: {self.transactions}")
+        print(f"transactions: {str(self.transactions)}")
         print(f"previous hash: {self.prev_hash}")
         print(f"hash: {self.hash}")
         print(f"---")
@@ -46,7 +46,7 @@ class Block:
         prev_hash = base64.b64encode(block.prev_hash).decode()
         block_hash = base64.b64encode(block.hash).decode()
         d = {'height': block.height, 'bits': block.bits, 'time': block.time, 'nonce': block.nonce,
-             'transactions': block.transactions, 'prev_hash': prev_hash, 'hash': block_hash}
+             'transactions': str(block.transactions), 'prev_hash': prev_hash, 'hash': block_hash}
         data = json.dumps(d)
         # print(data)
         return data

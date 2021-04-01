@@ -8,13 +8,13 @@ from configparser import ConfigParser
 # my block file
 from Block import Block
 from PoW import PoW
-from Transaction import TxInput, TxOutput, Transaction
+from Transaction import TxInput, TxOutput, Transaction, Transaction_Pool
 
 
 class Blockchain:
     def __init__(self):
         self._blocks = []
-        self.bits = 10
+        self.bits = 15
         self.subsidy = 50
         self.address_pool = dict()
         self.height = 0
@@ -28,7 +28,7 @@ class Blockchain:
 
     def initialize(self, name):
 
-        self._blocks.append(self.new_genesis_block())
+        self._blocks.append(self.new_genesis_block(name))
 
         # initialize the blockchain metadata and block file handler
         self.save_metadata()
@@ -49,12 +49,19 @@ class Blockchain:
     def new_block(self, prev_height, transactions, prev_hash):
         block = Block(prev_height, time.time(), self.bits,
                       0, transactions, prev_hash)
+
+        print(f'Try to get Block! {transactions} ...')
         block.set_hash()
+        print(f'\nGet Block!!!', end='\n\n')
         return block
 
-    def new_genesis_block(self):
+    def new_genesis_block(self, name):
         # tx = self.new_coinbase_tx(self.address, 'test reward')
-        block = self.new_block(-1, ['testblock 0'], hashlib.sha256().digest())
+        txout = TxOutput('Genesis')
+        txin = TxInput(name, txout)
+        tx = Transaction('genesis coinbase', txin, txout)
+        block = self.new_block(-1, Transaction_Pool(
+            [tx]), hashlib.sha256().digest())
         return block
 
     def add_block(self, transactions):
@@ -230,7 +237,7 @@ def test_save_blocks():
     for i in range(1, 11):
         blockchain.create_user(f'my address {i}')
 
-    for i in range(1, 201):
+    for i in range(1, 11):
         blockchain.add_block([f'test block {i}'])
 
     blockchain.print_blocks()
@@ -245,5 +252,5 @@ def test_read_blocks():
 
 
 if __name__ == '__main__':
-    # test_save_blocks()
-    test_read_blocks()
+    test_save_blocks()
+    # test_read_blocks()
