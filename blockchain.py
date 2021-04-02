@@ -1,11 +1,13 @@
 import sys
 import os
 import base64
+import base58
 import time
 import hashlib
 import json
 import random
 from configparser import ConfigParser
+from ecdsa import SigningKey, VerifyingKey, NIST384p
 # my block file
 from Block import Block
 from PoW import PoW
@@ -16,7 +18,7 @@ from Address import Address
 class Blockchain:
     def __init__(self):
         self._blocks = []
-        self.bits = 15
+        self.bits = 10
         self.subsidy = 50
         self.address_pool = dict()
         self.transaction_pool = list()
@@ -41,15 +43,15 @@ class Blockchain:
 
     def initialize(self, name):
 
+        self.address_file = open(f'{self.base_dir}/address', 'w+')
+        self.data_file = open(f'{self.base_dir}/data-0', 'w+')
+        self.create_user(name)
+        self.increment_balance(name, 50)
         self._blocks.append(self.new_genesis_block(name))
 
         # initialize the blockchain metadata and block file handler
         self.save_metadata()
         self.save_genesis_data()
-        self.address_file = open(f'{self.base_dir}/address', 'w+')
-        self.data_file = open(f'{self.base_dir}/data-0', 'w+')
-        self.create_user(name)
-        self.increment_balance(name, self.subsidy)
 
     def create_user(self, name):
         if name not in self.address_pool:
@@ -70,8 +72,9 @@ class Blockchain:
 
     def new_genesis_block(self, name):
         # tx = self.new_coinbase_tx(self.address, 'test reward')
-        tx_data = f'Reward ${self.subsidy} to {name}'
-        block = self.new_block(-1, [tx_data], hashlib.sha256().digest())
+        miner_data = f'Reward ${self.subsidy} to {name}'
+        sign_data = self.sign_transaction(name, miner_data)
+        block = self.new_block(-1, [sign_data], hashlib.sha256().digest())
         return block
 
     def add_block(self, transactions, name):
@@ -88,7 +91,8 @@ class Blockchain:
     # a coinbase transaction: add reward to the miner account
     def new_coinbase_tx_account(self, transactions, name):
         miner_data = f'Reward ${self.subsidy} to {name}'
-        transactions.append(miner_data)
+        sign_data = self.sign_transaction(name, miner_data)
+        transactions.append(sign_data)
         self.add_block(transactions, name)
         self.increment_balance(name, self.subsidy)
 
@@ -112,8 +116,23 @@ class Blockchain:
             raise ValueError(
                 f'{source} has no enough balance for transaction!!!')
         tx_data = f'from: {source} -- to: {dest} -- amount: {amount}'
-        self.transaction_pool.append(tx_data)
+        sign_data = self.sign_transaction(source, tx_data)
+        self.transaction_pool.append(sign_data)
         self.balance_pool.append((source, dest, amount))
+
+    def sign_transaction(self, source, tx_data):
+        sk = self.address_pool[source].sk
+        signature = base58.b58encode(sk.sign(tx_data.encode())).decode()
+        sign_data = tx_data + '|' + signature
+
+        return sign_data
+
+    def verify_transaction(self, source, sign_data):
+        vk = self.address_pool[source].verifying_key
+        tx_data, signature = sign_data.split('|')
+        tx_data = tx_data.encode()
+        signature = base58.b58decode(signature.encode())
+        assert vk.verify(signature, tx_data)
 
     """
         Account Model Methods
@@ -198,8 +217,9 @@ class Blockchain:
         # save the metadata of the blockchain
         self.address_file.close()
         with open(f'{self.base_dir}/address', 'w+') as f:
-            for key, addr in self.address_pool.items():
-                d = {key: addr.balance}
+            for name, addr in self.address_pool.items():
+                d = {'name': name, 'balance': addr.balance, 'sk': base64.b64encode(addr.sk.to_string(
+                )).decode(), 'vk': base64.b64encode(addr.vk.to_string()).decode()}
                 data = json.dumps(d)
                 f.write(data + '\n')
 
@@ -299,8 +319,14 @@ class Blockchain:
                 raw_data = line.strip('\n')
                 # print(raw_data)
                 address = json.loads(raw_data)
-                for name, value in address.items():
-                    self.address_pool[name] = Address(name, value)
+                name = address['name']
+                balance = address['balance']
+                addr = Address(name, balance)
+                addr.sk = SigningKey.from_string(
+                    base64.b64decode(address['sk'].encode()), curve=NIST384p)
+                addr.vk = VerifyingKey.from_string(
+                    base64.b64decode(address['vk'].encode()), curve=NIST384p)
+                self.address_pool[name] = addr
 
     def read_transaction_data(self, path='/data'):
         base_dir = os.getcwd() + path
@@ -385,7 +411,8 @@ def test_save_blocks():
             winner = random.randint(1, 10)
             blockchain.add_transaction(
                 'Eric Chen', f'my address {winner}', 80)
-
+        if len(blockchain.balance_pool) >= 100:
+            blockchain.fire_transactions('Eric Chen')
     except ValueError as e:
         blockchain.save_blocks()
     except KeyboardInterrupt:
@@ -417,6 +444,16 @@ def test_read_blocks():
         blockchain.save_blocks()
 
 
+def test_signature():
+    blockchain = Blockchain()
+    blockchain.read_metadata()
+    blockchain.read_address_pool_data()
+    blockchain.read_genesis_data()
+    block = blockchain._blocks[0]
+    blockchain.verify_transaction('Eric Chen', block.transactions[0])
+
+
 if __name__ == '__main__':
     # test_save_blocks()
-    test_read_blocks()
+    # test_read_blocks()
+    test_signature()
