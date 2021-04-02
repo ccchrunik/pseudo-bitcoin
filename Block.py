@@ -18,6 +18,7 @@ class Block:
         self.transactions = transactions
         self.prev_hash = prev_hash
         self.hash = ''
+        self.merkle_tree = None
 
     # print block information
 
@@ -31,6 +32,7 @@ class Block:
         print(f"transactions: {str(self.transactions)}")
         print(f"previous hash: {self.prev_hash}")
         print(f"hash: {self.hash}")
+        print(f'Merkle hash: {self.merkle_tree.hash()}')
         print(f"---")
         return ''
 
@@ -46,7 +48,7 @@ class Block:
         prev_hash = base64.b64encode(block.prev_hash).decode()
         block_hash = base64.b64encode(block.hash).decode()
         d = {'height': block.height, 'bits': block.bits, 'time': block.time, 'nonce': block.nonce,
-             'transactions': block.transactions, 'prev_hash': prev_hash, 'hash': block_hash}
+             'transactions': block.transactions, 'prev_hash': prev_hash, 'hash': block_hash, 'merkle_hash': block.merkle_tree.hash()}
         data = json.dumps(d)
         # print(data)
         return data

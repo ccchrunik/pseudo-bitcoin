@@ -11,14 +11,14 @@ from ecdsa import SigningKey, VerifyingKey, NIST384p
 # my block file
 from Block import Block
 from PoW import PoW
-from Transaction import TxInput, TxOutput, Transaction, Transaction_Pool
 from Address import Address
+from MerkleTree import MerkleTree
 
 
 class Blockchain:
     def __init__(self):
         self._blocks = []
-        self.bits = 10
+        self.bits = 15
         self.subsidy = 50
         self.address_pool = dict()
         self.transaction_pool = list()
@@ -47,7 +47,10 @@ class Blockchain:
         self.data_file = open(f'{self.base_dir}/data-0', 'w+')
         self.create_user(name)
         self.increment_balance(name, 50)
-        self._blocks.append(self.new_genesis_block(name))
+        genesis_block = self.new_genesis_block(name)
+        self._blocks.append(genesis_block)
+        self.create_merkle_tree(genesis_block)
+        self.save_block_data(genesis_block)
 
         # initialize the blockchain metadata and block file handler
         self.save_metadata()
@@ -82,21 +85,32 @@ class Blockchain:
         new_block = self.new_block(
             prev_block.height, transactions, prev_block.hash)
         self._blocks.append(new_block)
-        self.save_block_data(new_block)
 
         # account model
         # self.increment_balance(name, self.subsidy)
         # UTXO model
 
+    @staticmethod
+    def verify_blocks(block1, block2):
+        return block1.merkle_tree.hash() == block2.merkle_tree.hash()
+
+    def create_merkle_tree(self, block):
+        block_data = block.transactions
+        block.merkle_tree = MerkleTree.new_merkle_tree(block_data)
+
     # a coinbase transaction: add reward to the miner account
+
     def new_coinbase_tx_account(self, transactions, name):
         miner_data = f'Reward ${self.subsidy} to {name}'
         sign_data = self.sign_transaction(name, miner_data)
         transactions.append(sign_data)
         self.add_block(transactions, name)
         self.increment_balance(name, self.subsidy)
+        self.create_merkle_tree(self._blocks[-1])
+        self.save_block_data(self._blocks[-1])
 
     # fire transactions: aggregate all transactions from the transaction pool
+
     def fire_transactions(self, name='Eric Chen'):
         self.new_coinbase_tx_account(self.transaction_pool, name)
 
@@ -289,9 +303,9 @@ class Blockchain:
         self.read_address_pool_data(path)
         self.read_transaction_data(path)
         self.read_genesis_data(path)
-        self.read_blocks_data(path)
         self.address_file = open(f'{self.base_dir}/address', 'a+')
         self.data_file = open(f'{self.base_dir}/data-{self.index}', 'a+')
+        self.read_blocks_data(path)
 
     # read metadata like address from the file
     def read_metadata(self, path='/data'):
@@ -372,8 +386,10 @@ class Blockchain:
                     data = line.strip('\n')
                     block = Block.deserialize(data)
                     self._blocks.append(block)
+                    self.create_merkle_tree(block)
 
     # shutdown the blockchain
+
     def freeze(self):
         self.data_file.close()
 
@@ -399,7 +415,8 @@ def test_save_blocks():
 
     try:
         blockchain.initialize('Eric Chen')
-        blockchain.increment_balance('Eric Chen', 10000)
+        # blockchain.increment_balance('Eric Chen', 10000)
+        blockchain.increment_balance('Eric Chen', 1000000)
 
         for i in range(1, 11):
             blockchain.create_user(f'my address {i}')
@@ -454,6 +471,6 @@ def test_signature():
 
 
 if __name__ == '__main__':
-    # test_save_blocks()
+    test_save_blocks()
     # test_read_blocks()
-    test_signature()
+    # test_signature()
