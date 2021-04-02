@@ -46,7 +46,7 @@ class Block:
         prev_hash = base64.b64encode(block.prev_hash).decode()
         block_hash = base64.b64encode(block.hash).decode()
         d = {'height': block.height, 'bits': block.bits, 'time': block.time, 'nonce': block.nonce,
-             'transactions': str(block.transactions), 'prev_hash': prev_hash, 'hash': block_hash}
+             'transactions': block.transactions, 'prev_hash': prev_hash, 'hash': block_hash}
         data = json.dumps(d)
         # print(data)
         return data

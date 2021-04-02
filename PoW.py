@@ -14,8 +14,8 @@ class PoW:
         cfg = ConfigParser()
         cfg.read('./config.txt')
         self.salt = cfg['secret']['salt'].encode()
-        # self.txdata = ':'.join(block.transactions).encode()
-        self.txdata = str(block.transactions).encode()
+        self.txdata = ':'.join(block.transactions).encode()
+        # self.txdata = str(block.transactions).encode()
         self.prev_block_hash = base64.b64encode(block.prev_hash)
         self.data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode() + \
             self.txdata + self.prev_block_hash

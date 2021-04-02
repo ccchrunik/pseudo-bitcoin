@@ -64,8 +64,6 @@ class Transaction:
 class Transaction_Pool:
     def __init__(self, txs):
         self.transactions = []
-        print(type(txs))
-        print(len(txs))
         self.add_transactions(txs)
 
     def add_transactions(self, txs):
