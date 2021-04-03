@@ -18,7 +18,7 @@ class PoW:
         # self.txdata = str(block.transactions).encode()
         self.prev_block_hash = base64.b64encode(block.prev_hash)
         self.data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode() + \
-            self.txdata + self.prev_block_hash
+            self.txdata + self.prev_block_hash + block.merkle_tree.hash().encode()
 
     def prepare_data(self, nonce):
         self.data = self.data_prefix + str(nonce).encode()

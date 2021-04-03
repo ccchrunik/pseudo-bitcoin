@@ -6,6 +6,7 @@ import base64
 import time
 from configparser import ConfigParser
 from PoW import PoW
+from MerkleTree import MerkleTree
 
 
 class Block:
@@ -18,7 +19,7 @@ class Block:
         self.transactions = transactions
         self.prev_hash = prev_hash
         self.hash = ''
-        self.merkle_tree = None
+        self.merkle_tree = self.create_merkle_tree()
 
     # print block information
 
@@ -40,6 +41,9 @@ class Block:
         # read salt from config file
         Pow = PoW(self)
         self.nonce, self.hash = Pow.run()
+
+    def create_merkle_tree(self):
+        return MerkleTree.new_merkle_tree(self.transactions)
 
     # serialize a block
 

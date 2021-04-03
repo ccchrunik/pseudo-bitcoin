@@ -49,7 +49,7 @@ class Blockchain:
         self.increment_balance(name, 50)
         genesis_block = self.new_genesis_block(name)
         self._blocks.append(genesis_block)
-        self.create_merkle_tree(genesis_block)
+        # self.create_merkle_tree(genesis_block)
         self.save_block_data(genesis_block)
 
         # initialize the blockchain metadata and block file handler
@@ -106,7 +106,7 @@ class Blockchain:
         transactions.append(sign_data)
         self.add_block(transactions, name)
         self.increment_balance(name, self.subsidy)
-        self.create_merkle_tree(self._blocks[-1])
+        # self.create_merkle_tree(self._blocks[-1])
         self.save_block_data(self._blocks[-1])
 
     # fire transactions: aggregate all transactions from the transaction pool
@@ -386,7 +386,8 @@ class Blockchain:
                     data = line.strip('\n')
                     block = Block.deserialize(data)
                     self._blocks.append(block)
-                    self.create_merkle_tree(block)
+                    # self.create_merkle_tree(block)
+                    block.merkle_tree = block.create_merkle_tree()
 
     # shutdown the blockchain
 
@@ -421,7 +422,7 @@ def test_save_blocks():
         for i in range(1, 11):
             blockchain.create_user(f'my address {i}')
 
-        for i in range(1, 1001):
+        for i in range(1, 201):
             if len(blockchain.balance_pool) >= 100:
                 blockchain.fire_transactions('Eric Chen')
 
@@ -455,6 +456,7 @@ def test_read_blocks():
             blockchain.fire_transactions('Eric Chen')
 
         blockchain.save_address_pool_data()
+        blockchain.print_blocks()
     except ValueError as e:
         blockchain.save_blocks()
     except KeyboardInterrupt:
@@ -471,6 +473,6 @@ def test_signature():
 
 
 if __name__ == '__main__':
-    test_save_blocks()
-    # test_read_blocks()
+    # test_save_blocks()
+    test_read_blocks()
     # test_signature()
