@@ -1,14 +1,17 @@
+
+# standard modules
 import sys
 import os
-import base64
 import base58
+import base64
 import time
 import hashlib
 import json
 import random
+
+# my modules
 from configparser import ConfigParser
 from ecdsa import SigningKey, VerifyingKey, NIST384p
-# my block file
 from Block import Block
 from PoW import PoW
 from Address import Address
@@ -16,6 +19,9 @@ from MerkleTree import MerkleTree
 
 
 class Blockchain:
+    """
+    """
+
     def __init__(self):
         self._blocks = []
         self.bits = 15
