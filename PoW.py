@@ -1,3 +1,4 @@
+# standard modules
 import hashlib
 import json
 import base64
@@ -6,44 +7,103 @@ from configparser import ConfigParser
 
 
 class PoW:
-    def __init__(self, block):
-        self._block = block
-        self._target = 1 << (256 - block.bits)
+    """
+    A class for simulating the Proof of Work (PoW) process of the blockchain.
 
-        # read configuration and prepare header information
+    ... 
+
+    Attributes:
+    ----------
+    _block : Block
+        the Block instance ready for hash computation
+    _target : int
+        the threshold of the computation, if less than target, meaning we find an valid nonce
+    salt : str
+        used for improve the security of the hash computation
+    tx_data : str   
+        the joined transaction data used for hash computation     
+    prev_hash : str
+        the base64 encoded hash value 
+    data_prefix : str
+        the combined data from all the blocks data to be hashed except for the nonce
+    data : str
+        data_prefix + data, generated to compute the valid hash for the block
+
+    Methods:
+    ---------- 
+    run() : int, str
+        compute and then return the nonce and the valid hash to the caller
+    prepare(nonce) : void
+        prepared for candidate hash using the given nonce
+    validate() : bool
+        check if the computed hash is less than the threshold
+    """
+
+    def __init__(self, block):
+        """
+        Parameters: 
+        ----------
+        block : Block
+            the block to compute the hash value
+        """
+
+        # Initialization
+        self.block = block
+
+        # Set the target threshold
+        self.threshold = 1 << (256 - block.bits)
+
+        # Read configuration
         cfg = ConfigParser()
         cfg.read('./config.txt')
         self.salt = cfg['secret']['salt'].encode()
+
+        # Prepare header information
         self.txdata = ':'.join(block.transactions).encode()
-        # self.txdata = str(block.transactions).encode()
-        self.prev_block_hash = base64.b64encode(block.prev_hash)
+        self.prev_hash = base64.b64encode(block.prev_hash)
+
+        # Combined all data into one string
         self.data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode() + \
-            self.txdata + self.prev_block_hash + block.merkle_tree.hash().encode()
-
-    def prepare_data(self, nonce):
-        self.data = self.data_prefix + str(nonce).encode()
-        m = hashlib.sha256()
-        m.update(self.salt + self.data)
-        self.hash = int.from_bytes(m.digest(), 'big')
-        print_hash = base64.b64encode(
-            int.to_bytes(self.hash, 32, 'big')).decode()
-        print(
-            f'nonce = {nonce}, hash = {print_hash}', end='\r')
-
-        return self.validate()
+            + self.salt + self.txdata + self.prev_hash + block.merkle_tree.hash().encode()
 
     def run(self):
+        """Return the nonce and valid hash to the caller function"""
         nonce = 0
+        # Increment nonce by once after each loop until we find a valid one
         while True:
-            # print(f'nonce = {nonce}')
-            if self.prepare_data(nonce):
+            # Generate hash and save it to self.hash
+            self.prepare_data(nonce)
+
+            # If the hash is valid, return the nonce and the base64 encoded hash
+            if self.validate():
                 hash_data = self.hash.to_bytes(32, 'big')
                 return nonce, hash_data
 
             nonce += 1
 
+    def prepare_data(self, nonce):
+        """
+        Parameters: 
+        ---------- 
+        nonce : int 
+            the nonce for computing the hash value of this round
+        """
+        self.data = self.data_prefix + str(nonce).encode()
+
+        # Generate the hash of the block
+        m = hashlib.sha256()
+        m.update(self.data)
+        self.hash = int.from_bytes(m.digest(), 'big')
+
+        # Print the hash to the console
+        print_hash = base64.b64encode(
+            int.to_bytes(self.hash, 32, 'big')).decode()
+        print(
+            f'nonce = {nonce}, hash = {print_hash}', end='\r')
+
     def validate(self):
-        if self.hash < self._target:
+        """Check if the computed hash is less than the threshold"""
+        if self.hash < self.threshold:
             return True
         else:
             return False

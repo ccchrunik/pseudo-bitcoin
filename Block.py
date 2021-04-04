@@ -53,7 +53,7 @@ class Block:
 
     def __init__(self, prev_height, time, bits, nonce, transactions, prev_hash):
         """
-        Attributes:
+        Parameters:
         ----------
         height : int
             the position of the block in the blockchain
@@ -69,8 +69,6 @@ class Block:
             the hash value of the previous block
         hash : byte
             the hash value of this block
-        merkle_tree : MerkleTree
-            the constructed merkle tree based on the transactions
         """
         self.height = prev_height + 1
         self.time = time
