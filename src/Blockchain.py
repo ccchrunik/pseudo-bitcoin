@@ -22,8 +22,6 @@ from MerkleTree import MerkleTree
 # TODO: Change Address to Wallet
 # TODO: Change to advances signature method
 # TODO: Create a Account Transaction class to merge transaction_pool and balance_pool
-# TODO: Reformat Block print method
-# TODO: Add serialize and deserialize method to the Address class
 # TODO: Change verify transaction method to return a boolean value
 # TODO: Encapsulate all internal variables and write some accessor methods
 # TODO: Refactor read and save methods
@@ -747,7 +745,7 @@ class Blockchain:
                 # Process account data
                 raw_data = line.strip('\n')
                 addr = Address.deserialize(raw_data)
-                self.address_pool[name] = addr
+                self.address_pool[addr.name] = addr
 
     def read_transaction_data(self, path='/data'):
         """Read the unprocessed transaction data
@@ -758,6 +756,9 @@ class Blockchain:
             the path to read the transaction data
         """
         base_dir = os.getcwd() + path
+
+        if not os.path.exists(f'{base_dir}/transactions'):
+            return
 
         # Read transaction data
         with open(f'{base_dir}/transactions', 'r') as f:
@@ -809,10 +810,13 @@ class Blockchain:
         dir_list = os.listdir(base_dir)
 
         # Remove unrelated files
-        sort_dir.remove('genesis')
-        sort_dir.remove('metadata')
-        sort_dir.remove('address')
-        sort_dir.remove('transactions')
+        if os.path.exists(f'{base_dir}/genesis'):
+            dir_list.remove('genesis')
+            dir_list.remove('metadata')
+            dir_list.remove('address')
+
+        if os.path.exists(f'{base_dir}/transactions'):
+            dir_list.remove('transactions')
 
         # Sort the file to get the right time sequence
         sort_dir = sorted(dir_list)
@@ -901,6 +905,6 @@ def test_signature():
 
 
 if __name__ == '__main__':
-    test_save_blocks()
-    # test_read_blocks()
+    # test_save_blocks()
+    test_read_blocks()
     # test_signature()

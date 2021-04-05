@@ -2,7 +2,7 @@
 import json
 import base64
 # third-party ecdsa modules
-from ecdsa import SigningKey, NIST384p
+from ecdsa import SigningKey, VerifyingKey, NIST384p
 
 
 class Address:
@@ -114,8 +114,8 @@ class Address:
         data = json.loads(raw_data)
         addr = Address(data['name'], data['balance'])
         addr.sk = SigningKey.from_string(
-            base64.b64decode(address['sk'].encode()), curve=NIST384p)
+            base64.b64decode(data['sk'].encode()), curve=NIST384p)
         addr.vk = VerifyingKey.from_string(
-            base64.b64decode(address['vk'].encode()), curve=NIST384p)
+            base64.b64decode(data['vk'].encode()), curve=NIST384p)
 
         return addr

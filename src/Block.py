@@ -97,18 +97,21 @@ class Block:
     def __str__(self):
         """the string representation of the block"""
 
-        print(f"Block Information: ")
-        print(f"---")
-        print(f"height: {self.height}")
-        print(f"time: {self.time}")
-        print(f"hardness: {self.bits}")
-        print(f"nonce: {self.nonce}")
-        print(f"transactions: {str(self.transactions)}")
-        print(f"previous hash: {self.prev_hash}")
-        print(f"hash: {self.hash}")
-        print(f'Merkle hash: {self.merkle_tree.hash()}')
-        print(f"---")
-        return ''
+        info_pieces = ["Block Information: ",
+                       "---",
+                       f"height: {self.height}",
+                       f"time: {self.time}",
+                       f"hardness: {self.bits}",
+                       f"nonce: {self.nonce}",
+                       f"transactions: {str(self.transactions)}",
+                       f"previous hash: {self.prev_hash}",
+                       f"hash: {self.hash}",
+                       f'Merkle hash: {self.merkle_tree.hash()}',
+                       f"---"]
+
+        info = '\n'.join(info_pieces)
+
+        return info
 
     def set_hash(self):
         """Compute the hash of the block"""
