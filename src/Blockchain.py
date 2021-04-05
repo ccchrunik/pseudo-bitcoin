@@ -16,13 +16,13 @@ from Block import Block
 from PoW import PoW
 from Address import Address
 from MerkleTree import MerkleTree
+from Transaction_Account import Transaction
 
 # TODO: Complete CLI
 # TODO: Refactor CLI using decorator factory
 # TODO: Change Address to Wallet
 # TODO: Change to advances signature method
 # TODO: Create a Account Transaction class to merge transaction_pool and balance_pool
-# TODO: Encapsulate all internal variables and write some accessor methods
 # TODO: Refactor read and save methods
 # TODO: Complete UTXO Model
 # TODO: Create virtual environment
