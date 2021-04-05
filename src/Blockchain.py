@@ -845,8 +845,8 @@ def test_save_blocks():
 
     try:
         blockchain.initialize('Eric Chen')
-        # blockchain.increment_balance('Eric Chen', 10000)
-        blockchain.increment_balance('Eric Chen', 1000000)
+        blockchain.increment_balance('Eric Chen', 10000)
+        # blockchain.increment_balance('Eric Chen', 1000000)
 
         for i in range(1, 11):
             blockchain.create_user(f'my address {i}')
@@ -872,20 +872,20 @@ def test_read_blocks():
     blockchain.read_blockchain()
 
     try:
-        # blockchain.increment_balance('Eric Chen', 200000)
+        blockchain.increment_balance('Eric Chen', 200000)
 
-        # for i in range(301, 1001):
-        #     if len(blockchain.balance_pool) >= 100:
-        #         blockchain.fire_transactions('Eric Chen')
+        for i in range(301, 1001):
+            if len(blockchain.balance_pool) >= 100:
+                blockchain.fire_transactions('Eric Chen')
 
-        #     winner = random.randint(1, 10)
-        #     blockchain.add_transaction(
-        #         'Eric Chen', f'my address {winner}', 80)
+            winner = random.randint(1, 10)
+            blockchain.add_transaction(
+                'Eric Chen', f'my address {winner}', 80)
 
-        # if len(blockchain.balance_pool) >= 100:
-        #     blockchain.fire_transactions('Eric Chen')
+        if len(blockchain.balance_pool) >= 100:
+            blockchain.fire_transactions('Eric Chen')
 
-        # blockchain.save_address_pool_data()
+        blockchain.save_address_pool_data()
         blockchain.print_blocks()
     except ValueError as e:
         blockchain.save_blocks()
@@ -904,6 +904,6 @@ def test_signature():
 
 
 if __name__ == '__main__':
-    test_save_blocks()
-    # test_read_blocks()
+    # test_save_blocks()
+    test_read_blocks()
     # test_signature()

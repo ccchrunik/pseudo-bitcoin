@@ -107,7 +107,7 @@ class Block:
                        f"previous hash: {self.prev_hash}",
                        f"hash: {self.hash}",
                        f'Merkle hash: {self.merkle_tree.hash()}',
-                       f"---"]
+                       f"---\n"]
 
         info = '\n'.join(info_pieces)
 
