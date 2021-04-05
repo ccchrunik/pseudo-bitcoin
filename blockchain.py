@@ -236,10 +236,11 @@ class Blockchain:
         # Check if the user had already in the address pool
         if name not in self.address_pool:
             # Add to the address pool
-            self.address_pool[name] = Address(name, 0)
+            addr = Address(name, 0)
+            self.address_pool[name] = addr
 
             # Update the address data
-            self.save_address_data((name, 0))
+            self.save_address_data(addr)
         else:
             print('User name exist! Please choose another name as your address!')
 
@@ -289,13 +290,15 @@ class Blockchain:
             the genesis block
         """
         # Construct the reward message
-        miner_data = f'Reward ${self.subsidy} to {name}'
+        miner_data = f'This is the genesis block!!!'
 
         # Sign the transaction data
         sign_data = self.sign_transaction(name, miner_data)
 
         # Create the block
-        block = self.new_block(-1, [sign_data], hashlib.sha256().digest())
+        prev_hash = base64.b64encode(hashlib.sha256().digest()).decode()
+        print(prev_hash)
+        block = self.new_block(-1, [sign_data], prev_hash)
 
         return block
 
@@ -877,20 +880,20 @@ def test_read_blocks():
     blockchain.read_blockchain()
 
     try:
-        blockchain.increment_balance('Eric Chen', 200000)
+        # blockchain.increment_balance('Eric Chen', 200000)
 
-        for i in range(301, 1001):
-            if len(blockchain.balance_pool) >= 100:
-                blockchain.fire_transactions('Eric Chen')
+        # for i in range(301, 1001):
+        #     if len(blockchain.balance_pool) >= 100:
+        #         blockchain.fire_transactions('Eric Chen')
 
-            winner = random.randint(1, 10)
-            blockchain.add_transaction(
-                'Eric Chen', f'my address {winner}', 80)
+        #     winner = random.randint(1, 10)
+        #     blockchain.add_transaction(
+        #         'Eric Chen', f'my address {winner}', 80)
 
-        if len(blockchain.balance_pool) >= 100:
-            blockchain.fire_transactions('Eric Chen')
+        # if len(blockchain.balance_pool) >= 100:
+        #     blockchain.fire_transactions('Eric Chen')
 
-        blockchain.save_address_pool_data()
+        # blockchain.save_address_pool_data()
         blockchain.print_blocks()
     except ValueError as e:
         blockchain.save_blocks()
@@ -909,6 +912,6 @@ def test_signature():
 
 
 if __name__ == '__main__':
-    test_save_blocks()
-    # test_read_blocks()
+    # test_save_blocks()
+    test_read_blocks()
     # test_signature()

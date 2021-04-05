@@ -62,17 +62,16 @@ class PoW:
         self.threshold = 1 << (256 - block.bits)
 
         # Read configuration
-        cfg = ConfigParser()
-        cfg.read('./config.txt')
-        self.salt = cfg['secret']['salt'].encode()
+        # cfg = ConfigParser()
+        # cfg.read('./config.txt')
+        # self.salt = cfg['secret']['salt'].encode()
 
         # Prepare header information
-        self.txdata = ':'.join(block.transactions).encode()
-        self.prev_hash = base64.b64encode(block.prev_hash)
+        self.txdata = ':'.join(block.transactions)
 
         # Combined all data into one string
-        self.data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode() + \
-            + self.salt + self.txdata + self.prev_hash + block.merkle_tree.hash().encode()
+        self.data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode(
+        ) + self.txdata.encode() + block.prev_hash.encode() + block.merkle_tree.hash().encode()
 
     def run(self):
         """Return the nonce and valid hash to the caller function"""
@@ -84,7 +83,9 @@ class PoW:
 
             # If the hash is valid, return the nonce and the base64 encoded hash
             if self.validate():
-                hash_data = self.hash.to_bytes(32, 'big')
+                # Using base64 encoding for storage
+                hash_data = base64.b64encode(
+                    self.hash.to_bytes(32, 'big')).decode()
                 return nonce, hash_data
 
             nonce += 1

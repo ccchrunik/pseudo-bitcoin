@@ -140,13 +140,9 @@ class Block:
             the json formatted string data to be stored in a file
         """
 
-        # Encode the prev_hash and hash to become storable plaintext instead of bytes
-        prev_hash = base64.b64encode(block.prev_hash).decode()
-        block_hash = base64.b64encode(block.hash).decode()
-
         # Create a dictionary to be dumped by the json module
         d = {'height': block.height, 'bits': block.bits, 'time': block.time, 'nonce': block.nonce,
-             'transactions': block.transactions, 'prev_hash': prev_hash, 'hash': block_hash, 'merkle_hash': block.merkle_tree.hash()}
+             'transactions': block.transactions, 'prev_hash': block.prev_hash, 'hash': block.hash, 'merkle_hash': block.merkle_tree.hash()}
 
         # Use json module to dump data
         data = json.dumps(d)
@@ -179,10 +175,10 @@ class Block:
         bits = data['bits']
         nonce = data['nonce']
         transactions = data['transactions']
-        prev_hash = base64.b64decode(data['prev_hash'].encode())
+        prev_hash = data['prev_hash']
 
         # Create a Block instance and also set the hash value to the block
         block = Block(height - 1, time, bits, nonce, transactions, prev_hash)
-        block.hash = base64.b64decode(data['hash'].encode())
+        block.hash = data['hash']
 
         return block
