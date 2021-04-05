@@ -92,7 +92,7 @@ class Block:
         self._transactions = transactions
         self._prev_hash = prev_hash
         self._hash = ''
-        self._merkle_tree = self.create_merkle_tree()
+        self._merkle_tree = self._create_merkle_tree()
 
     def __str__(self):
         """the string representation of the block"""
@@ -162,7 +162,7 @@ class Block:
         # Run the PoW process to get the nonce and the hash value
         self._nonce, self._hash = Pow.run()
 
-    def create_merkle_tree(self):
+    def _create_merkle_tree(self):
         """Construct a merkle tree based on the transactions"""
         return MerkleTree.new_merkle_tree(self.transactions)
 
@@ -223,5 +223,6 @@ class Block:
         # Create a Block instance and also set the hash value to the block
         block = Block(height - 1, time, bits, nonce, transactions, prev_hash)
         block.hash = data['hash']
+        block._create_merkle_tree()
 
         return block

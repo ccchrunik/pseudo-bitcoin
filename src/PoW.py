@@ -107,30 +107,30 @@ class PoW:
         # Increment nonce by once after each loop until we find a valid one
         while True:
             # Generate hash and save it to self.hash
-            self.prepare_data(nonce)
+            self._prepare_data(nonce)
 
             # If the hash is valid, return the nonce and the base64 encoded hash
-            if self.validate():
+            if self._validate():
                 # Using base64 encoding for storage
                 hash_data = base64.b64encode(
-                    self.hash.to_bytes(32, 'big')).decode()
+                    self._hash.to_bytes(32, 'big')).decode()
                 return nonce, hash_data
 
             nonce += 1
 
-    def prepare_data(self, nonce):
+    def _prepare_data(self, nonce):
         """
         Parameters: 
         ---------- 
         nonce : int 
             the nonce for computing the hash value of this round
         """
-        self.data = self._data_prefix + str(nonce).encode()
+        self._data = self._data_prefix + str(nonce).encode()
 
         # Generate the hash of the block
         m = hashlib.sha256()
-        m.update(self.data)
-        self.hash = int.from_bytes(m.digest(), 'big')
+        m.update(self._data)
+        self._hash = int.from_bytes(m.digest(), 'big')
 
         # Print the hash to the console
         print_hash = base64.b64encode(
@@ -138,9 +138,9 @@ class PoW:
         print(
             f'nonce = {nonce}, hash = {print_hash}', end='\r')
 
-    def validate(self):
+    def _validate(self):
         """Check if the computed hash is less than the threshold"""
-        if self.hash < self.threshold:
+        if self._hash < self._threshold:
             return True
         else:
             return False
