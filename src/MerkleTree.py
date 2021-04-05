@@ -41,6 +41,7 @@ class MerkleTree:
         """Return the top hash of the merkle tree"""
         return self.hash()
 
+    @property
     def hash(self):
         """Return the top hash of the merkle tree
 

@@ -180,21 +180,45 @@ class Blockchain:
         verify the top hash of the merkle tree of each block
     """
 
-    def __init__(self):
+    def __init__(self, bits=10, subsidy=50, threshold=100, data_path='/data'):
         self._blocks = []
-        self.bits = 10
-        self.subsidy = 50
-        self.address_pool = dict()
-        self.transaction_pool = list()
-        self.balance_pool = list()
-        self.height = 0
-        self.count = 0
-        self.index = 0
-        self.threshold = 100
-        self.data_path = '/data'
-        self.base_dir = os.getcwd() + self.data_path
-        self.data_file = None
-        self.address_file = None
+        self._bits = bits
+        self._subsidy = subsidy
+        self._address_pool = dict()
+        self._transaction_pool = list()
+        self._balance_pool = list()
+        self._height = 0
+        self._count = 0
+        self._index = 0
+        self._threshold = threshold
+        self._data_path = data_path
+        self._base_dir = os.getcwd() + self.data_path
+        self._data_file = None
+        self._address_file = None
+
+    @property
+    def blocks(self):
+        return self._blocks
+
+    @property
+    def bits(self):
+        return self._bits
+
+    @property
+    def subsidy(self):
+        return self._subsidy
+
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @property
+    def data_path(self):
+        return self._data_path
+
+    @property
+    def base_dir(self):
+        return self._base_dir
 
     def initialize(self, name):
         """Initialize the blockchain
@@ -206,8 +230,8 @@ class Blockchain:
         """
 
         # Open file handler to save initialization data
-        self.address_file = open(f'{self.base_dir}/address', 'w+')
-        self.data_file = open(f'{self.base_dir}/data-0', 'w+')
+        self._address_file = open(f'{self.base_dir}/address', 'w+')
+        self._data_file = open(f'{self.base_dir}/data-0', 'w+')
 
         # Create an user
         self.create_user(name)
@@ -232,10 +256,10 @@ class Blockchain:
         """
 
         # Check if the user had already in the address pool
-        if name not in self.address_pool:
+        if name not in self._address_pool:
             # Add to the address pool
             addr = Address(name, 0)
-            self.address_pool[name] = addr
+            self._address_pool[name] = addr
 
             # Update the address data
             self.save_address_data(addr)
@@ -263,7 +287,7 @@ class Blockchain:
         """
 
         # Create a Block instance
-        block = Block(prev_height, time.time(), self.bits,
+        block = Block(prev_height, time.time(), self._bits,
                       0, transactions, prev_hash)
 
         print(f'Try to get Block! {transactions} ...')
@@ -295,7 +319,6 @@ class Blockchain:
 
         # Create the block
         prev_hash = base64.b64encode(hashlib.sha256().digest()).decode()
-        print(prev_hash)
         block = self.new_block(-1, [sign_data], prev_hash)
 
         return block
@@ -330,7 +353,7 @@ class Blockchain:
         block2 : Block
             a block
         """
-        return block1.merkle_tree.hash() == block2.merkle_tree.hash()
+        return block1.merkle_tree.hash == block2.merkle_tree.hash
 
     def new_coinbase_tx_account(self, transactions, name):
         """Add reward to the miner and add a block to the blockchain
@@ -352,7 +375,7 @@ class Blockchain:
         self.add_block(transactions, name)
 
         # Add reward to miner's account
-        self.increment_balance(name, self.subsidy)
+        self.increment_balance(name, self._subsidy)
 
         # Save the block data
         self.save_block_data(self._blocks[-1])
@@ -367,10 +390,10 @@ class Blockchain:
         """
 
         # Add transactions records in the blockchain
-        self.new_coinbase_tx_account(self.transaction_pool, name)
+        self.new_coinbase_tx_account(self._transaction_pool, name)
 
         # Move money between account based on each transaction
-        for source, dest, amount in self.balance_pool:
+        for source, dest, amount in self._balance_pool:
             if not self.have_balance(source, amount):
                 raise ValueError(
                     f'{source} has no enough balance for transaction!!!')
@@ -380,8 +403,8 @@ class Blockchain:
         self.save_address_pool_data()
 
         # Clear the transaction and balance pool
-        self.transaction_pool = []
-        self.balance_pool = []
+        self._transaction_pool = []
+        self._balance_pool = []
 
     def add_transaction(self, source, dest, amount):
         """Add a transaction to the transaction pool
@@ -408,8 +431,8 @@ class Blockchain:
         sign_data = self.sign_transaction(source, tx_data)
 
         # Add transaction and records on the blockchain
-        self.transaction_pool.append(sign_data)
-        self.balance_pool.append((source, dest, amount))
+        self._transaction_pool.append(sign_data)
+        self._balance_pool.append((source, dest, amount))
 
     def sign_transaction(self, source, tx_data):
         """Sing a transaction and add signature to the transaction
@@ -429,7 +452,7 @@ class Blockchain:
         """
 
         # Sign the transaction and add signature after the transaction
-        sk = self.address_pool[source].sk
+        sk = self._address_pool[source].sk
         signature = base58.b58encode(sk.sign(tx_data.encode())).decode()
         sign_data = tx_data + '|' + signature
 
@@ -447,7 +470,7 @@ class Blockchain:
             the signed transaction
         """
         # Process the signed transaction
-        vk = self.address_pool[source].verifying_key
+        vk = self._address_pool[source].verifying_key
         tx_data, signature = sign_data.split('|')
         tx_data = tx_data.encode()
         signature = base58.b58decode(signature.encode())
@@ -464,7 +487,7 @@ class Blockchain:
         amount : int
             the amount of balance
         """
-        if self.address_pool[name].balance >= amount:
+        if self._address_pool[name].balance >= amount:
             return True
         else:
             return False
@@ -478,7 +501,7 @@ class Blockchain:
         amount : int
             the amount of balance to be incremented
         """
-        self.address_pool[name].add_balance(amount)
+        self._address_pool[name].add_balance(amount)
 
     def decrement_balance(self, name, amount):
         """decrement an account's balance
@@ -489,7 +512,7 @@ class Blockchain:
         amount : int
             the amount of balance to be decremented
         """
-        self.address_pool[name].sub_balance(amount)
+        self._address_pool[name].sub_balance(amount)
 
     def move_balance(self, source, dest, amount):
         """Move balance from source account to dest account
@@ -549,8 +572,8 @@ class Blockchain:
         # Save the metadata
         with open(f'{base_dir}/metadata', 'w+') as f:
             # Create a dictionary contains blockchain metadata
-            d = {'bits': self.bits, 'subsidy': self.subsidy, 'height': len(
-                self._blocks), 'count': self.count, 'index': self.index}
+            d = {'bits': self._bits, 'subsidy': self._subsidy, 'height': len(
+                self._blocks), 'count': self._count, 'index': self._index}
 
             # Dump data to json formatted data and save it
             data = json.dumps(d)
@@ -570,7 +593,7 @@ class Blockchain:
         # Get the base directory
         base_dir = os.getcwd() + path
         data = Address.serialize(addr)
-        self.address_file.write(data + '\n')
+        self._address_file.write(data + '\n')
 
     def save_address_pool_data(self, path='/data'):
         """Save all account address
@@ -584,11 +607,11 @@ class Blockchain:
         base_dir = os.getcwd() + path
 
         # Reset the address file
-        self.address_file.close()
+        self._address_file.close()
 
         # Save the address data
         with open(f'{self.base_dir}/address', 'w+') as f:
-            for name, addr in self.address_pool.items():
+            for name, addr in self._address_pool.items():
                 data = Address.serialize(addr)
                 f.write(data + '\n')
 
@@ -603,7 +626,7 @@ class Blockchain:
         base_dir = os.getcwd() + path
         # Save transactions data record
         with open(f'{self.base_dir}/transactions', 'w+') as f:
-            for source, dest, amount in self.balance_pool:
+            for source, dest, amount in self._balance_pool:
                 d = {'source': source, 'dest': dest, 'amount': amount}
                 data = json.dumps(d)
                 f.write(data + '\n')
@@ -638,15 +661,15 @@ class Blockchain:
         data = Block.serialize(block)
 
         # Track the data file to be written
-        self.index = self.count // self.threshold
+        self._index = self._count // self._threshold
 
         # Create a new file for incoming data if we have too many block in this data file
-        if self.count != 0 and self.count % self.threshold == 0:
-            self.data_file.close()
-            self.data_file = open(f'{self.base_dir}/data-{self.index}', 'w+')
+        if self._count != 0 and self._count % self._threshold == 0:
+            self._data_file.close()
+            self._data_file = open(f'{self.base_dir}/data-{self.index}', 'w+')
 
-        self.count += 1
-        self.data_file.write(data + '\n')
+        self._count += 1
+        self._data_file.write(data + '\n')
         self.save_metadata()
 
     def save_blocks_data(self, path='/data'):
@@ -658,7 +681,7 @@ class Blockchain:
             the path to store the blocks data
         """
         # Reset the data file
-        self.data_file.close()
+        self._data_file.close()
 
         base_dir = os.getcwd() + path
 
@@ -696,8 +719,8 @@ class Blockchain:
         self.read_address_pool_data(path)
         self.read_transaction_data(path)
         self.read_genesis_data(path)
-        self.address_file = open(f'{self.base_dir}/address', 'a+')
-        self.data_file = open(f'{self.base_dir}/data-{self.index}', 'a+')
+        self._address_file = open(f'{self.base_dir}/address', 'a+')
+        self._data_file = open(f'{self.base_dir}/data-{self._index}', 'a+')
         self.read_blocks_data(path)
 
     def read_metadata(self, path='/data'):
@@ -721,11 +744,11 @@ class Blockchain:
             metadata = json.loads(raw_data)
 
             # Add data back to the blockchain
-            self.bits = metadata['bits']
-            self.subsidy = metadata['subsidy']
-            self.height = metadata['height']
-            self.count = metadata['count']
-            self.index = metadata['index']
+            self._bits = metadata['bits']
+            self._subsidy = metadata['subsidy']
+            self._height = metadata['height']
+            self._count = metadata['count']
+            self._index = metadata['index']
 
     def read_address_pool_data(self, path='/data'):
         """Read the blockchain account data from the path
@@ -744,7 +767,7 @@ class Blockchain:
                 # Process account data
                 raw_data = line.strip('\n')
                 addr = Address.deserialize(raw_data)
-                self.address_pool[addr.name] = addr
+                self._address_pool[addr.name] = addr
 
     def read_transaction_data(self, path='/data'):
         """Read the unprocessed transaction data
@@ -772,8 +795,8 @@ class Blockchain:
                 dest = transaction['dest']
                 amount = transaction['amount']
                 tx_data = f'from: {source} -- to: {dest} -- amount: {amount}'
-                self.transaction_pool.append(tx_data)
-                self.balance_pool.append((source, dest, amount))
+                self._transaction_pool.append(tx_data)
+                self._balance_pool.append((source, dest, amount))
 
         # Unknown: need to test whether it will affect the functionality
         with open(f'{base_dir}/transactions', 'w+') as f:
@@ -852,13 +875,13 @@ def test_save_blocks():
             blockchain.create_user(f'my address {i}')
 
         for i in range(1, 201):
-            if len(blockchain.balance_pool) >= 100:
+            if len(blockchain._balance_pool) >= 100:
                 blockchain.fire_transactions('Eric Chen')
 
             winner = random.randint(1, 10)
             blockchain.add_transaction(
                 'Eric Chen', f'my address {winner}', 80)
-        if len(blockchain.balance_pool) >= 100:
+        if len(blockchain._balance_pool) >= 100:
             blockchain.fire_transactions('Eric Chen')
     except ValueError as e:
         blockchain.save_blockchain()
@@ -875,14 +898,14 @@ def test_read_blocks():
         blockchain.increment_balance('Eric Chen', 200000)
 
         for i in range(301, 1001):
-            if len(blockchain.balance_pool) >= 100:
+            if len(blockchain._balance_pool) >= 100:
                 blockchain.fire_transactions('Eric Chen')
 
             winner = random.randint(1, 10)
             blockchain.add_transaction(
                 'Eric Chen', f'my address {winner}', 80)
 
-        if len(blockchain.balance_pool) >= 100:
+        if len(blockchain._balance_pool) >= 100:
             blockchain.fire_transactions('Eric Chen')
 
         blockchain.save_address_pool_data()

@@ -106,7 +106,7 @@ class Block:
                        f"transactions: {str(self.transactions)}",
                        f"previous hash: {self.prev_hash}",
                        f"hash: {self.hash}",
-                       f'Merkle hash: {self.merkle_tree.hash()}',
+                       f'Merkle hash: {self.merkle_tree.hash}',
                        f"---\n"]
 
         info = '\n'.join(info_pieces)
@@ -185,7 +185,7 @@ class Block:
 
         # Create a dictionary to be dumped by the json module
         d = {'height': block.height, 'bits': block.bits, 'time': block.time, 'nonce': block.nonce,
-             'transactions': block.transactions, 'prev_hash': block.prev_hash, 'hash': block.hash, 'merkle_hash': block.merkle_tree.hash()}
+             'transactions': block.transactions, 'prev_hash': block.prev_hash, 'hash': block.hash, 'merkle_hash': block.merkle_tree.hash}
 
         # Use json module to dump data
         data = json.dumps(d)

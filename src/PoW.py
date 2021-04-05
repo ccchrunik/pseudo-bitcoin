@@ -71,7 +71,7 @@ class PoW:
 
         # Combined all data into one string
         self._data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode(
-        ) + self._txdata.encode() + block.prev_hash.encode() + block.merkle_tree.hash().encode()
+        ) + self._txdata.encode() + block.prev_hash.encode() + block.merkle_tree.hash.encode()
 
         # Other Attributes
         self._hash = None
