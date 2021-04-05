@@ -85,14 +85,14 @@ class Block:
         hash : byte
             the hash value of this block
         """
-        self.height = prev_height + 1
-        self.time = time
-        self.bits = bits
-        self.nonce = nonce
-        self.transactions = transactions
-        self.prev_hash = prev_hash
-        self.hash = ''
-        self.merkle_tree = self.create_merkle_tree()
+        self._height = prev_height + 1
+        self._time = time
+        self._bits = bits
+        self._nonce = nonce
+        self._transactions = transactions
+        self._prev_hash = prev_hash
+        self._hash = ''
+        self._merkle_tree = self.create_merkle_tree()
 
     def __str__(self):
         """the string representation of the block"""
@@ -113,6 +113,46 @@ class Block:
 
         return info
 
+    @property
+    def height(self):
+        return self._height
+
+    @property
+    def time(self):
+        return self._time
+
+    @property
+    def bits(self):
+        return self._bits
+
+    @property
+    def nonce(self):
+        return self._nonce
+
+    @property
+    def transactions(self):
+        return self._transactions
+
+    @property
+    def prev_hash(self):
+        return self._prev_hash
+
+    @property
+    def hash(self):
+        return self._hash
+
+    @hash.setter
+    def hash(self, hash):
+        self._hash = hash
+
+    @property
+    def merkle_tree(self):
+        return self._merkle_tree
+
+    @merkle_tree.setter
+    def merkle_tree(self, merkle_tree):
+        self._merkle_tree = merkle_tree
+
     def set_hash(self):
         """Compute the hash of the block"""
 
@@ -120,7 +160,7 @@ class Block:
         Pow = PoW(self)
 
         # Run the PoW process to get the nonce and the hash value
-        self.nonce, self.hash = Pow.run()
+        self._nonce, self._hash = Pow.run()
 
     def create_merkle_tree(self):
         """Construct a merkle tree based on the transactions"""
