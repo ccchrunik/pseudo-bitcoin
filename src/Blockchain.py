@@ -22,7 +22,6 @@ from MerkleTree import MerkleTree
 # TODO: Change Address to Wallet
 # TODO: Change to advances signature method
 # TODO: Create a Account Transaction class to merge transaction_pool and balance_pool
-# TODO: Change verify transaction method to return a boolean value
 # TODO: Encapsulate all internal variables and write some accessor methods
 # TODO: Refactor read and save methods
 # TODO: Complete UTXO Model
@@ -905,6 +904,6 @@ def test_signature():
 
 
 if __name__ == '__main__':
-    # test_save_blocks()
-    test_read_blocks()
+    test_save_blocks()
+    # test_read_blocks()
     # test_signature()

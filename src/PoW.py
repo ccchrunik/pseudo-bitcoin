@@ -56,10 +56,10 @@ class PoW:
         """
 
         # Initialization
-        self.block = block
+        self._block = block
 
         # Set the target threshold
-        self.threshold = 1 << (256 - block.bits)
+        self._threshold = 1 << (256 - block.bits)
 
         # Read configuration
         # cfg = ConfigParser()
@@ -67,11 +67,39 @@ class PoW:
         # self.salt = cfg['secret']['salt'].encode()
 
         # Prepare header information
-        self.txdata = ':'.join(block.transactions)
+        self._txdata = ':'.join(block.transactions)
 
         # Combined all data into one string
-        self.data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode(
-        ) + self.txdata.encode() + block.prev_hash.encode() + block.merkle_tree.hash().encode()
+        self._data_prefix = str(block.height).encode() + str(block.time).encode() + str(block.bits).encode(
+        ) + self._txdata.encode() + block.prev_hash.encode() + block.merkle_tree.hash().encode()
+
+        # Other Attributes
+        self._hash = None
+        self._data = None
+
+    @property
+    def block(self):
+        return self._block
+
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @property
+    def hash(self):
+        return self._hash
+
+    @hash.setter
+    def hash(self, hash):
+        self._hash = hash
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self._data = data
 
     def run(self):
         """Return the nonce and valid hash to the caller function"""
@@ -97,7 +125,7 @@ class PoW:
         nonce : int 
             the nonce for computing the hash value of this round
         """
-        self.data = self.data_prefix + str(nonce).encode()
+        self.data = self._data_prefix + str(nonce).encode()
 
         # Generate the hash of the block
         m = hashlib.sha256()

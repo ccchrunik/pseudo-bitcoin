@@ -60,26 +60,6 @@ class Address:
         self.sk = SigningKey.generate(curve=NIST384p)
         self.vk = self.sk.verifying_key
 
-    def add_balance(self, amount):
-        """Add the amount to the account balance
-
-        Parameters: 
-        ----------
-        amount : int
-            the amount to be added to the balance
-        """
-        self.balance += amount
-
-    def sub_balance(self, amount):
-        """Substract the amount from the account balance
-
-        Parameters: 
-        ----------
-        amount : int
-            the amount to be substracted form the account balance
-        """
-        self.balance -= amount
-
     @property
     def name(self):
         return self._name
@@ -99,6 +79,26 @@ class Address:
     @property
     def verifying_key(self):
         return self.vk
+
+    def add_balance(self, amount):
+        """Add the amount to the account balance
+
+        Parameters: 
+        ----------
+        amount : int
+            the amount to be added to the balance
+        """
+        self.balance += amount
+
+    def sub_balance(self, amount):
+        """Substract the amount from the account balance
+
+        Parameters: 
+        ----------
+        amount : int
+            the amount to be substracted form the account balance
+        """
+        self.balance -= amount
 
     @staticmethod
     def serialize(addr):
