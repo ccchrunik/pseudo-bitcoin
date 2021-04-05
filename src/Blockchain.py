@@ -14,7 +14,7 @@ from configparser import ConfigParser
 from ecdsa import SigningKey, VerifyingKey, NIST384p
 from Block import Block
 from PoW import PoW
-from Address import Address
+from Wallet import Wallet
 from MerkleTree import MerkleTree
 from Transaction_Account import Transaction
 
@@ -184,7 +184,8 @@ class Blockchain:
         self._blocks = []
         self._bits = bits
         self._subsidy = subsidy
-        self._address_pool = dict()
+        self._root_wallet = None
+        self._wallet_pool = dict()
         self._transaction_pool = list()
         self._balance_pool = list()
         self._height = 0
@@ -194,7 +195,7 @@ class Blockchain:
         self._data_path = data_path
         self._base_dir = os.getcwd() + self.data_path
         self._data_file = None
-        self._address_file = None
+        self._wallet_file = None
 
     @property
     def blocks(self):
@@ -230,15 +231,17 @@ class Blockchain:
         """
 
         # Open file handler to save initialization data
-        self._address_file = open(f'{self.base_dir}/address', 'w+')
+        self._wallet_file = open(f'{self.base_dir}/wallet', 'w+')
         self._data_file = open(f'{self.base_dir}/data-0', 'w+')
 
         # Create an user
-        self.create_user(name)
-        self.increment_balance(name, self._subsidy)
+        wallet = self.create_user(name)
+        self._root_wallet = wallet
+
+        self.increment_balance(wallet.address, self._subsidy)
 
         # Create the genesis block
-        genesis_block = self._new_genesis_block(name)
+        genesis_block = self._new_genesis_block(wallet.address)
         self._blocks.append(genesis_block)
 
         # Save the initialization data
@@ -256,13 +259,15 @@ class Blockchain:
         """
 
         # Check if the user had already in the address pool
-        if name not in self._address_pool:
+        if name not in self._wallet_pool:
             # Add to the address pool
-            addr = Address(name, 0)
-            self._address_pool[name] = addr
+            wallet = Wallet(name, 0)
+            self._wallet_pool[wallet.address] = wallet
 
             # Update the address data
-            self._save_address_data(addr)
+            self._save_wallet_data(wallet)
+
+            return wallet
         else:
             print('User name exist! Please choose another name as your address!')
 
@@ -298,7 +303,7 @@ class Blockchain:
         print(f'\nGet Block!!!', end='\n\n')
         return block
 
-    def _new_genesis_block(self, name):
+    def _new_genesis_block(self, address):
         """Create the genesis block
 
         Parameters: 
@@ -315,7 +320,7 @@ class Blockchain:
         miner_data = f'This is the genesis block!!!'
 
         # Sign the transaction data
-        sign_data = self._sign_transaction(name, miner_data)
+        sign_data = self._sign_transaction(address, miner_data)
 
         # Create the block
         prev_hash = base64.b64encode(hashlib.sha256().digest()).decode()
@@ -323,7 +328,7 @@ class Blockchain:
 
         return block
 
-    def _add_block(self, transactions, name):
+    def _add_block(self, transactions):
         """Create a new block and add it to the blockchain
 
         Parameters:
@@ -355,7 +360,7 @@ class Blockchain:
         """
         return block1.merkle_tree.hash == block2.merkle_tree.hash
 
-    def _new_coinbase_tx_account(self, transactions, name):
+    def _new_coinbase_tx_account(self, transactions, address):
         """Add reward to the miner and add a block to the blockchain
 
         Parameters:
@@ -367,20 +372,20 @@ class Blockchain:
             the name of the miner 
         """
         # Create and sign a reward transaction
-        miner_data = f'Reward ${self.subsidy} to {name}'
-        sign_data = self._sign_transaction(name, miner_data)
+        miner_data = f'Reward ${self.subsidy} to {address}'
+        sign_data = self._sign_transaction(address, miner_data)
 
         # Add a block to the blockchain
         transactions.append(sign_data)
-        self._add_block(transactions, name)
+        self._add_block(transactions)
 
         # Add reward to miner's account
-        self.increment_balance(name, self._subsidy)
+        self.increment_balance(address, self._subsidy)
 
         # Save the block data
         self._save_block_data(self._blocks[-1])
 
-    def fire_transactions(self, name='Eric Chen'):
+    def fire_transactions(self, address):
         """Aggregate all transactions in the blockchain to a single block and add it to the blockchain, internal method
 
         Parameters:
@@ -390,7 +395,7 @@ class Blockchain:
         """
 
         # Add transactions records in the blockchain
-        self._new_coinbase_tx_account(self._transaction_pool, name)
+        self._new_coinbase_tx_account(self._transaction_pool, address)
 
         # Move money between account based on each transaction
         for source, dest, amount in self._balance_pool:
@@ -400,7 +405,7 @@ class Blockchain:
             self.move_balance(source, dest, amount)
 
         # Save updated account data
-        self._save_address_pool_data()
+        self._save_wallet_pool_data()
 
         # Clear the transaction and balance pool
         self._transaction_pool = []
@@ -452,7 +457,7 @@ class Blockchain:
         """
 
         # Sign the transaction and add signature after the transaction
-        sk = self._address_pool[source].sk
+        sk = self._wallet_pool[source].sk
         signature = base58.b58encode(sk.sign(tx_data.encode())).decode()
         sign_data = tx_data + '|' + signature
 
@@ -470,7 +475,7 @@ class Blockchain:
             the signed transaction
         """
         # Process the signed transaction
-        vk = self._address_pool[source].verifying_key
+        vk = self._wallet_pool[source].verifying_key
         tx_data, signature = sign_data.split('|')
         tx_data = tx_data.encode()
         signature = base58.b58decode(signature.encode())
@@ -478,7 +483,7 @@ class Blockchain:
         # Verify the signature
         assert vk.verify(signature, tx_data)
 
-    def have_balance(self, name, amount):
+    def have_balance(self, address, amount):
         """Check if an account has enough amount of balance
 
         name : str 
@@ -487,12 +492,12 @@ class Blockchain:
         amount : int
             the amount of balance
         """
-        if self._address_pool[name].balance >= amount:
+        if self._wallet_pool[address].balance >= amount:
             return True
         else:
             return False
 
-    def increment_balance(self, name, amount):
+    def increment_balance(self, address, amount):
         """Increment an account's balance
 
         name :  str
@@ -501,9 +506,9 @@ class Blockchain:
         amount : int
             the amount of balance to be incremented
         """
-        self._address_pool[name].add_balance(amount)
+        self._wallet_pool[address].add_balance(amount)
 
-    def decrement_balance(self, name, amount):
+    def decrement_balance(self, address, amount):
         """decrement an account's balance
 
         name :  str
@@ -512,7 +517,7 @@ class Blockchain:
         amount : int
             the amount of balance to be decremented
         """
-        self._address_pool[name].sub_balance(amount)
+        self._wallet_pool[address].sub_balance(amount)
 
     def move_balance(self, source, dest, amount):
         """Move balance from source account to dest account
@@ -542,7 +547,7 @@ class Blockchain:
         self._save_metadata(path)
 
         # Save account data
-        self._save_address_pool_data(path)
+        self._save_wallet_pool_data(path)
 
         # Save the genesis block data
         self._save_genesis_data(path)
@@ -579,7 +584,7 @@ class Blockchain:
             data = json.dumps(d)
             f.write(data + '\n')
 
-    def _save_address_data(self, addr, path='/data'):
+    def _save_wallet_data(self, addr, path='/data'):
         """Save an account address
 
         Parameters: 
@@ -592,10 +597,10 @@ class Blockchain:
         """
         # Get the base directory
         base_dir = os.getcwd() + path
-        data = Address.serialize(addr)
-        self._address_file.write(data + '\n')
+        data = Wallet.serialize(addr)
+        self._wallet_file.write(data + '\n')
 
-    def _save_address_pool_data(self, path='/data'):
+    def _save_wallet_pool_data(self, path='/data'):
         """Save all account address
 
         Parameters: 
@@ -607,12 +612,12 @@ class Blockchain:
         base_dir = os.getcwd() + path
 
         # Reset the address file
-        self._address_file.close()
+        self._wallet_file.close()
 
         # Save the address data
-        with open(f'{self.base_dir}/address', 'w+') as f:
-            for name, addr in self._address_pool.items():
-                data = Address.serialize(addr)
+        with open(f'{self.base_dir}/wallet', 'w+') as f:
+            for address, wallet in self._wallet_pool.items():
+                data = Wallet.serialize(wallet)
                 f.write(data + '\n')
 
     def _save_transaction_data(self, path='/data'):
@@ -716,11 +721,11 @@ class Blockchain:
             the path to read the blockchain data
         """
         self._read_metadata(path)
-        self._read_address_pool_data(path)
+        self._wallet_file = open(f'{self.base_dir}/wallet', 'a+')
+        self._data_file = open(f'{self.base_dir}/data-{self._index}', 'a+')
+        self._read_wallet_pool_data(path)
         self._read_transaction_data(path)
         self._read_genesis_data(path)
-        self._address_file = open(f'{self.base_dir}/address', 'a+')
-        self._data_file = open(f'{self.base_dir}/data-{self._index}', 'a+')
         self._read_blocks_data(path)
 
     def _read_metadata(self, path='/data'):
@@ -750,7 +755,7 @@ class Blockchain:
             self._count = metadata['count']
             self._index = metadata['index']
 
-    def _read_address_pool_data(self, path='/data'):
+    def _read_wallet_pool_data(self, path='/data'):
         """Read the blockchain account data from the path
 
         Parameters:
@@ -761,13 +766,14 @@ class Blockchain:
         base_dir = os.getcwd() + path
 
         # Read address data
-        with open(f'{base_dir}/address', 'r') as f:
+        with open(f'{base_dir}/wallet', 'r') as f:
             # Each line of data is an account
             for line in f:
+                print(line)
                 # Process account data
                 raw_data = line.strip('\n')
-                addr = Address.deserialize(raw_data)
-                self._address_pool[addr.name] = addr
+                wallet = Wallet.deserialize(raw_data)
+                self._wallet_pool[wallet.address] = wallet
 
     def _read_transaction_data(self, path='/data'):
         """Read the unprocessed transaction data
@@ -835,7 +841,7 @@ class Blockchain:
         if os.path.exists(f'{base_dir}/genesis'):
             dir_list.remove('genesis')
             dir_list.remove('metadata')
-            dir_list.remove('address')
+            dir_list.remove('wallet')
 
         if os.path.exists(f'{base_dir}/transactions'):
             dir_list.remove('transactions')
@@ -867,21 +873,25 @@ def test_save_blocks():
 
     try:
         blockchain.initialize('Eric Chen')
-        blockchain.increment_balance('Eric Chen', 10000)
+        wallets = [None for _ in range(11)]
+        root_wallet = blockchain._root_wallet
+        wallets[0] = root_wallet
+        blockchain.increment_balance(wallets[0].address, 10000)
         # blockchain.increment_balance('Eric Chen', 1000000)
 
         for i in range(1, 11):
-            blockchain.create_user(f'my address {i}')
+            wallet = blockchain.create_user(f'my address {i}')
+            wallets[i] = wallet
 
         for i in range(1, 201):
             if len(blockchain._balance_pool) >= 100:
-                blockchain.fire_transactions('Eric Chen')
+                blockchain.fire_transactions(wallets[0].address)
 
             winner = random.randint(1, 10)
             blockchain.add_transaction(
-                'Eric Chen', f'my address {winner}', 80)
+                wallets[0].address, wallets[winner].address, 80)
         if len(blockchain._balance_pool) >= 100:
-            blockchain.fire_transactions('Eric Chen')
+            blockchain.fire_transactions(wallets[0].address)
     except ValueError as e:
         blockchain.save_blockchain()
     except KeyboardInterrupt:
@@ -892,27 +902,41 @@ def test_read_blocks():
     """Test the read aspect of the blockchain functions"""
     blockchain = Blockchain()
     blockchain.read_blockchain()
+    wallets = [None for _ in range(11)]
+
+    # Retrieve all wallet using brute-force
+    for address, wallet in blockchain._wallet_pool.items():
+        # Root address
+        if wallet.name[-1] == 'n':
+            wallets[0] = wallet
+            continue
+
+        num = int(wallet.name[-1])
+        if num == 0:
+            num = 10
+
+        wallets[num] = wallet
 
     try:
-        blockchain.increment_balance('Eric Chen', 200000)
+        blockchain.increment_balance(wallets[0].address, 200000)
 
         for i in range(301, 1001):
             if len(blockchain._balance_pool) >= 100:
-                blockchain.fire_transactions('Eric Chen')
+                blockchain.fire_transactions(wallets[0].address)
 
             winner = random.randint(1, 10)
             blockchain.add_transaction(
-                'Eric Chen', f'my address {winner}', 80)
+                wallets[0].address, wallets[winner].address, 80)
 
         if len(blockchain._balance_pool) >= 100:
-            blockchain.fire_transactions('Eric Chen')
+            blockchain.fire_transactions(wallets[0].address)
 
         blockchain.save_blockchain()
         blockchain.print_blocks()
     except ValueError as e:
-        blockchain.save_blocks()
+        blockchain.save_blockchain()
     except KeyboardInterrupt:
-        blockchain.save_blocks()
+        blockchain.save_blockchain()
 
 
 def test_signature():

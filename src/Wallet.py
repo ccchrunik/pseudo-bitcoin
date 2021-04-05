@@ -1,11 +1,14 @@
 # standard modules
+import hashlib
 import json
 import base64
+import base58
 # third-party ecdsa modules
 from ecdsa import SigningKey, VerifyingKey, NIST384p
+from Crypto.Hash import RIPEMD160
 
 
-class Address:
+class Wallet:
     """
     A class represent the account data in the blockchain.
 
@@ -59,6 +62,7 @@ class Address:
         self._balance = balance
         self.sk = SigningKey.generate(curve=NIST384p)
         self.vk = self.sk.verifying_key
+        self._address = self._create_address()
 
     @property
     def name(self):
@@ -77,8 +81,24 @@ class Address:
         self._balance = balance
 
     @property
+    def address(self):
+        return self._address
+
+    @property
+    def signing_key(self):
+        return self.sk
+
+    @property
     def verifying_key(self):
         return self.vk
+
+    @property
+    def address(self):
+        return self._address
+
+    @address.setter
+    def address(self, address):
+        self._address = address
 
     def add_balance(self, amount):
         """Add the amount to the account balance
@@ -100,10 +120,44 @@ class Address:
         """
         self.balance -= amount
 
+    def _create_address(self):
+        m = hashlib.sha256()
+        h = RIPEMD160.new()
+        vk = base64.b64encode(self.verifying_key.to_string())
+
+        m.update(vk)
+        h.update(m.digest())
+        key_hash = h.digest()
+
+        m.update(key_hash)
+        m.update(key_hash)
+        checksum = m.digest()
+
+        addr = key_hash + checksum
+
+        return base58.b58encode(addr).decode()
+
     @staticmethod
-    def serialize(addr):
-        d = {'name': addr.name, 'balance': addr.balance, 'sk': base64.b64encode(addr.sk.to_string(
-        )).decode(), 'vk': base64.b64encode(addr.vk.to_string()).decode()}
+    def verify_address(wallet):
+        m = hashlib.sha256()
+        h = RIPEMD160.new()
+        vk = base64.b64encode(wallet.verifying_key.to_string())
+
+        m.update(vk)
+        key_hash = h.update(m.digest())
+
+        m.update(key_hash)
+        m.update(key_hash)
+        checksum = m.digest()
+
+        addr = key_hash + checksum
+
+        return addr == wallet.address
+
+    @staticmethod
+    def serialize(wallet):
+        d = {'name': wallet.name, 'balance': wallet.balance, 'sk': base64.b64encode(wallet.signing_key.to_string(
+        )).decode(), 'vk': base64.b64encode(wallet.verifying_key.to_string()).decode(), 'address': wallet.address}
 
         data = json.dumps(d)
 
@@ -112,10 +166,11 @@ class Address:
     @staticmethod
     def deserialize(raw_data):
         data = json.loads(raw_data)
-        addr = Address(data['name'], data['balance'])
-        addr.sk = SigningKey.from_string(
+        wallet = Wallet(data['name'], data['balance'])
+        wallet.sk = SigningKey.from_string(
             base64.b64decode(data['sk'].encode()), curve=NIST384p)
-        addr.vk = VerifyingKey.from_string(
+        wallet.vk = VerifyingKey.from_string(
             base64.b64decode(data['vk'].encode()), curve=NIST384p)
+        wallet.address = data['address']
 
-        return addr
+        return wallet
