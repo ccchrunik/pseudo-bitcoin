@@ -16,16 +16,22 @@ class PoW:
     ----------
     _block : Block
         the Block instance ready for hash computation
+
     _target : int
         the threshold of the computation, if less than target, meaning we find an valid nonce
+
     salt : str
         used for improve the security of the hash computation
+
     tx_data : str   
         the joined transaction data used for hash computation     
+
     prev_hash : str
         the base64 encoded hash value 
+
     data_prefix : str
         the combined data from all the blocks data to be hashed except for the nonce
+
     data : str
         data_prefix + data, generated to compute the valid hash for the block
 
@@ -33,8 +39,10 @@ class PoW:
     ---------- 
     run() : int, str
         compute and then return the nonce and the valid hash to the caller
+
     prepare(nonce) : void
         prepared for candidate hash using the given nonce
+
     validate() : bool
         check if the computed hash is less than the threshold
     """

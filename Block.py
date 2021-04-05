@@ -21,18 +21,25 @@ class Block:
     ----------
     height : int
         the position of the block in the blockchain
+
     time : float (unix timestamp)
         the creation time of the block
+
     bits : int 
         the hardness of the PoW, the bigger is the harder 
+
     nonce : int
         the nonce of the block computed in the PoW process
+
     transactions : List[str]
         the transactions of the block
+
     prev_hash : byte
         the hash value of the previous block
+
     hash : byte
         the hash value of this block
+
     merkle_tree : MerkleTree
         the constructed merkle tree based on the transactions
 
@@ -40,6 +47,7 @@ class Block:
     ----------
     set_hash() : void
         compute the hash of the block and append this and nonce to the block attributes
+
     create_merkle_tree() : void 
         create a merkle tree based on the transactions
 
@@ -47,6 +55,7 @@ class Block:
     ----------
     serialize(block: Block) : str 
         return the serialization of the block
+
     deserialize(raw_data: str) : Block
         deserialize the raw_data can create the Block instance based on the given data
     """
@@ -57,16 +66,22 @@ class Block:
         ----------
         height : int
             the position of the block in the blockchain
+
         time : float (unix timestamp)
             the creation time of the block
+
         bits : int 
             the hardness of the PoW, the bigger is the harder 
+
         nonce : int
             the nonce of the block computed in the PoW process
+
         transactions : List[str]
             the transactions of the block
+
         prev_hash : byte
             the hash value of the previous block
+
         hash : byte
             the hash value of this block
         """

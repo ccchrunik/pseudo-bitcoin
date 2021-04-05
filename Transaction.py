@@ -1,8 +1,13 @@
+# standard modules
 import hashlib
 import base64
 
 
 class TxInput:
+    """
+    A class used for input in the UTXO
+    """
+
     def __init__(self, Txid, Vout, ScriptSig='temp input string'):
         self.Txid = Txid
         self.Vout = Vout
