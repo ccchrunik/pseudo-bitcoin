@@ -21,10 +21,9 @@ from MerkleTree import MerkleTree
 # TODO: Refactor CLI using decorator factory
 # TODO: Change Address to Wallet
 # TODO: Change to advances signature method
-# TODO: Change the hash stored in the blockchain using base64 encoded string
 # TODO: Create a Account Transaction class to merge transaction_pool and balance_pool
 # TODO: Reformat Block print method
-# TODO: Add serialize and deserialize method to the Address cclass
+# TODO: Add serialize and deserialize method to the Address class
 # TODO: Change verify transaction method to return a boolean value
 # TODO: Encapsulate all internal variables and write some accessor methods
 # TODO: Refactor project directory
@@ -33,6 +32,9 @@ from MerkleTree import MerkleTree
 # TODO: Create virtual environment
 # TODO: Add Client-Server Network Model
 # TODO: Add P2P Network Model
+
+# Change storage directory to the project directory
+os.chdir('../')
 
 
 class Blockchain:
@@ -912,6 +914,6 @@ def test_signature():
 
 
 if __name__ == '__main__':
-    # test_save_blocks()
-    test_read_blocks()
+    test_save_blocks()
+    # test_read_blocks()
     # test_signature()
