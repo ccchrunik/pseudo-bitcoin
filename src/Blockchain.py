@@ -26,7 +26,6 @@ from MerkleTree import MerkleTree
 # TODO: Add serialize and deserialize method to the Address class
 # TODO: Change verify transaction method to return a boolean value
 # TODO: Encapsulate all internal variables and write some accessor methods
-# TODO: Refactor project directory
 # TODO: Refactor read and save methods
 # TODO: Complete UTXO Model
 # TODO: Create virtual environment
@@ -186,7 +185,7 @@ class Blockchain:
 
     def __init__(self):
         self._blocks = []
-        self.bits = 15
+        self.bits = 10
         self.subsidy = 50
         self.address_pool = dict()
         self.transaction_pool = list()
@@ -573,10 +572,7 @@ class Blockchain:
         """
         # Get the base directory
         base_dir = os.getcwd() + path
-
-        d = {'name': addr.name, 'balance': addr.balance, 'sk': base64.b64encode(addr.sk.to_string(
-        )).decode(), 'vk': base64.b64encode(addr.vk.to_string()).decode()}
-        data = json.dumps(d)
+        data = Address.serialize(addr)
         self.address_file.write(data + '\n')
 
     def save_address_pool_data(self, path='/data'):
@@ -596,9 +592,7 @@ class Blockchain:
         # Save the address data
         with open(f'{self.base_dir}/address', 'w+') as f:
             for name, addr in self.address_pool.items():
-                d = {'name': name, 'balance': addr.balance, 'sk': base64.b64encode(addr.sk.to_string(
-                )).decode(), 'vk': base64.b64encode(addr.vk.to_string()).decode()}
-                data = json.dumps(d)
+                data = Address.serialize(addr)
                 f.write(data + '\n')
 
     def save_transaction_data(self, path='/data'):
@@ -752,17 +746,7 @@ class Blockchain:
             for line in f:
                 # Process account data
                 raw_data = line.strip('\n')
-                address = json.loads(raw_data)
-
-                # Add address data back to the blockchain
-                name = address['name']
-                balance = address['balance']
-                addr = Address(name, balance)
-                addr.sk = SigningKey.from_string(
-                    base64.b64decode(address['sk'].encode()), curve=NIST384p)
-                addr.vk = VerifyingKey.from_string(
-                    base64.b64decode(address['vk'].encode()), curve=NIST384p)
-
+                addr = Address.deserialize(raw_data)
                 self.address_pool[name] = addr
 
     def read_transaction_data(self, path='/data'):
@@ -821,14 +805,17 @@ class Blockchain:
         """
         base_dir = os.getcwd() + path
 
-        # Sort the file to get the right time sequence
-        sort_dir = sorted(os.listdir(base_dir))
+        # Get all file in the directory
+        dir_list = os.listdir(base_dir)
 
         # Remove unrelated files
         sort_dir.remove('genesis')
         sort_dir.remove('metadata')
         sort_dir.remove('address')
         sort_dir.remove('transactions')
+
+        # Sort the file to get the right time sequence
+        sort_dir = sorted(dir_list)
 
         # Read data from each file under the directory
         for file in sort_dir:

@@ -1,3 +1,6 @@
+# standard modules
+import json
+import base64
 # third-party ecdsa modules
 from ecdsa import SigningKey, NIST384p
 
@@ -96,3 +99,23 @@ class Address:
     @property
     def verifying_key(self):
         return self.vk
+
+    @staticmethod
+    def serialize(addr):
+        d = {'name': addr.name, 'balance': addr.balance, 'sk': base64.b64encode(addr.sk.to_string(
+        )).decode(), 'vk': base64.b64encode(addr.vk.to_string()).decode()}
+
+        data = json.dumps(d)
+
+        return data
+
+    @staticmethod
+    def deserialize(raw_data):
+        data = json.loads(raw_data)
+        addr = Address(data['name'], data['balance'])
+        addr.sk = SigningKey.from_string(
+            base64.b64decode(address['sk'].encode()), curve=NIST384p)
+        addr.vk = VerifyingKey.from_string(
+            base64.b64decode(address['vk'].encode()), curve=NIST384p)
+
+        return addr
