@@ -16,12 +16,10 @@ from Block import Block
 from PoW import PoW
 from Wallet import Wallet
 from MerkleTree import MerkleTree
-from Transaction_Account import Transaction
+from Transaction_Account import Transaction, TransactionPool
 
 # TODO: Complete CLI
 # TODO: Refactor CLI using decorator factory
-# TODO: Change Address to Wallet
-# TODO: Change to advances signature method
 # TODO: Create a Account Transaction class to merge transaction_pool and balance_pool
 # TODO: Refactor read and save methods
 # TODO: Complete UTXO Model
@@ -186,8 +184,7 @@ class Blockchain:
         self._subsidy = subsidy
         self._root_wallet = None
         self._wallet_pool = dict()
-        self._transaction_pool = list()
-        self._balance_pool = list()
+        self._transaction_pool = TransactionPool()
         self._height = 0
         self._count = 0
         self._index = 0
@@ -220,6 +217,10 @@ class Blockchain:
     @property
     def base_dir(self):
         return self._base_dir
+
+    @property
+    def tx_num(self):
+        return self._transaction_pool.size
 
     def initialize(self, name):
         """Initialize the blockchain
@@ -395,10 +396,10 @@ class Blockchain:
         """
 
         # Add transactions records in the blockchain
-        self._new_coinbase_tx_account(self._transaction_pool, address)
+        self._new_coinbase_tx_account(self._transaction_pool.records, address)
 
         # Move money between account based on each transaction
-        for source, dest, amount in self._balance_pool:
+        for source, dest, amount in self._transaction_pool.balance:
             if not self.have_balance(source, amount):
                 raise ValueError(
                     f'{source} has no enough balance for transaction!!!')
@@ -407,9 +408,8 @@ class Blockchain:
         # Save updated account data
         self._save_wallet_pool_data()
 
-        # Clear the transaction and balance pool
-        self._transaction_pool = []
-        self._balance_pool = []
+        # Clear the transaction records and balance
+        self._transaction_pool.reset()
 
     def add_transaction(self, source, dest, amount):
         """Add a transaction to the transaction pool
@@ -431,13 +431,11 @@ class Blockchain:
             raise ValueError(
                 f'{source} has no enough balance for transaction!!!')
 
-        # Create a transaction record and sign it
-        tx_data = f'from: {source} -- to: {dest} -- amount: {amount}'
-        sign_data = self._sign_transaction(source, tx_data)
+        # Create a transaction
+        tx = Transaction(source, dest, amount)
 
-        # Add transaction and records on the blockchain
-        self._transaction_pool.append(sign_data)
-        self._balance_pool.append((source, dest, amount))
+        # Add transaction on the blockchain
+        self._transaction_pool.add_transaction(tx)
 
     def _sign_transaction(self, source, tx_data):
         """Sing a transaction and add signature to the transaction
@@ -631,9 +629,8 @@ class Blockchain:
         base_dir = os.getcwd() + path
         # Save transactions data record
         with open(f'{self.base_dir}/transactions', 'w+') as f:
-            for source, dest, amount in self._balance_pool:
-                d = {'source': source, 'dest': dest, 'amount': amount}
-                data = json.dumps(d)
+            for tx_balance in self._transaction_pool.balance:
+                data = Transaction.serialize(tx_balance)
                 f.write(data + '\n')
 
     def _save_genesis_data(self, path='/data'):
@@ -794,15 +791,10 @@ class Blockchain:
             for line in f:
                 # Process the transaction
                 raw_data = line.strip('\n')
-                transaction = json.loads(raw_data)
+                tx = Transaction.deserialize(raw_data)
 
                 # Add the transaction back to the transaction pool
-                source = transaction['source']
-                dest = transaction['dest']
-                amount = transaction['amount']
-                tx_data = f'from: {source} -- to: {dest} -- amount: {amount}'
-                self._transaction_pool.append(tx_data)
-                self._balance_pool.append((source, dest, amount))
+                self._transaction_pool.add_transaction(tx)
 
         # Unknown: need to test whether it will affect the functionality
         with open(f'{base_dir}/transactions', 'w+') as f:
@@ -884,13 +876,13 @@ def test_save_blocks():
             wallets[i] = wallet
 
         for i in range(1, 201):
-            if len(blockchain._balance_pool) >= 100:
+            if blockchain.tx_num >= 100:
                 blockchain.fire_transactions(wallets[0].address)
 
             winner = random.randint(1, 10)
             blockchain.add_transaction(
                 wallets[0].address, wallets[winner].address, 80)
-        if len(blockchain._balance_pool) >= 100:
+        if blockchain.tx_num >= 100:
             blockchain.fire_transactions(wallets[0].address)
     except ValueError as e:
         blockchain.save_blockchain()
@@ -921,14 +913,14 @@ def test_read_blocks():
         blockchain.increment_balance(wallets[0].address, 200000)
 
         for i in range(301, 1001):
-            if len(blockchain._balance_pool) >= 100:
+            if blockchain.tx_num >= 100:
                 blockchain.fire_transactions(wallets[0].address)
 
             winner = random.randint(1, 10)
             blockchain.add_transaction(
                 wallets[0].address, wallets[winner].address, 80)
 
-        if len(blockchain._balance_pool) >= 100:
+        if blockchain.tx_num >= 100:
             blockchain.fire_transactions(wallets[0].address)
 
         blockchain.save_blockchain()
