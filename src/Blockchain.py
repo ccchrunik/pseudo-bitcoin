@@ -14,7 +14,7 @@ from configparser import ConfigParser
 from ecdsa import SigningKey, VerifyingKey, NIST384p
 from Block import Block
 from PoW import PoW
-from Wallet import Wallet
+from Wallet import Wallet, WalletPool
 from MerkleTree import MerkleTree
 from Transaction_Account import Transaction, TransactionPool
 
@@ -183,7 +183,7 @@ class Blockchain:
         self._bits = bits
         self._subsidy = subsidy
         self._root_wallet = None
-        self._wallet_pool = dict()
+        self._wallet_pool = WalletPool()
         self._transaction_pool = TransactionPool()
         self._height = 0
         self._count = 0
@@ -222,6 +222,10 @@ class Blockchain:
     def tx_num(self):
         return self._transaction_pool.size
 
+    @property
+    def wallet_num(self):
+        return self._wallet_pool.size
+
     def initialize(self, name):
         """Initialize the blockchain
 
@@ -258,19 +262,14 @@ class Blockchain:
         name : str
             create an user based on the given name
         """
+        # Add to the address pool
+        wallet = Wallet(name, 0)
+        self._wallet_pool.add_wallet(wallet)
 
-        # Check if the user had already in the address pool
-        if name not in self._wallet_pool:
-            # Add to the address pool
-            wallet = Wallet(name, 0)
-            self._wallet_pool[wallet.address] = wallet
+        # Update the address data
+        self._save_wallet_data(wallet)
 
-            # Update the address data
-            self._save_wallet_data(wallet)
-
-            return wallet
-        else:
-            print('User name exist! Please choose another name as your address!')
+        return wallet
 
     def _new_block(self, prev_height, transactions, prev_hash):
         """Create a new block in the blockchain
@@ -455,7 +454,7 @@ class Blockchain:
         """
 
         # Sign the transaction and add signature after the transaction
-        sk = self._wallet_pool[source].sk
+        sk = self._wallet_pool.get_wallet_signing_key(source)
         signature = base58.b58encode(sk.sign(tx_data.encode())).decode()
         sign_data = tx_data + '|' + signature
 
@@ -473,7 +472,7 @@ class Blockchain:
             the signed transaction
         """
         # Process the signed transaction
-        vk = self._wallet_pool[source].verifying_key
+        vk = self._wallet_pool.get_wallet_verifying_key(source)
         tx_data, signature = sign_data.split('|')
         tx_data = tx_data.encode()
         signature = base58.b58decode(signature.encode())
@@ -490,7 +489,7 @@ class Blockchain:
         amount : int
             the amount of balance
         """
-        if self._wallet_pool[address].balance >= amount:
+        if self._wallet_pool.has_balance(address, amount):
             return True
         else:
             return False
@@ -504,7 +503,7 @@ class Blockchain:
         amount : int
             the amount of balance to be incremented
         """
-        self._wallet_pool[address].add_balance(amount)
+        self._wallet_pool.add_balance(address, amount)
 
     def decrement_balance(self, address, amount):
         """decrement an account's balance
@@ -515,7 +514,7 @@ class Blockchain:
         amount : int
             the amount of balance to be decremented
         """
-        self._wallet_pool[address].sub_balance(amount)
+        self._wallet_pool.sub_balance(address, amount)
 
     def move_balance(self, source, dest, amount):
         """Move balance from source account to dest account
@@ -614,7 +613,7 @@ class Blockchain:
 
         # Save the address data
         with open(f'{self.base_dir}/wallet', 'w+') as f:
-            for address, wallet in self._wallet_pool.items():
+            for address, wallet in self._wallet_pool.wallets:
                 data = Wallet.serialize(wallet)
                 f.write(data + '\n')
 
@@ -770,7 +769,7 @@ class Blockchain:
                 # Process account data
                 raw_data = line.strip('\n')
                 wallet = Wallet.deserialize(raw_data)
-                self._wallet_pool[wallet.address] = wallet
+                self._wallet_pool.add_wallet(wallet)
 
     def _read_transaction_data(self, path='/data'):
         """Read the unprocessed transaction data
@@ -897,7 +896,7 @@ def test_read_blocks():
     wallets = [None for _ in range(11)]
 
     # Retrieve all wallet using brute-force
-    for address, wallet in blockchain._wallet_pool.items():
+    for address, wallet in blockchain._wallet_pool.wallets:
         # Root address
         if wallet.name[-1] == 'n':
             wallets[0] = wallet

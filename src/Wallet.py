@@ -8,6 +8,54 @@ from ecdsa import SigningKey, VerifyingKey, NIST384p
 from Crypto.Hash import RIPEMD160
 
 
+class WalletPool:
+    def __init__(self):
+        self._wallets = dict()
+
+    @property
+    def wallets(self):
+        return self._wallets.items()
+
+    @property
+    def size(self):
+        return len(self._wallets.keys())
+
+    def get_wallet(self, address):
+        return self._wallets[address]
+
+    def has_address(self, address):
+        return address in self._wallets
+
+    def add_wallet(self, wallet):
+        self._wallets[wallet.address] = wallet
+
+    def remove_address(self, address):
+        return self._wallets.pop(address, None)
+
+    def has_balance(self, address, amount):
+        return self._wallets[address].balance >= amount
+
+    def add_balance(self, address, amount):
+        wallet = self._wallets[address]
+        wallet.add_balance(amount)
+
+    def sub_balance(self, address, amount):
+        wallet = self._wallets[address]
+        wallet.sub_balance(amount)
+
+    @property
+    def wallet_balance(self, address):
+        return self._wallets[address].balance
+
+    def get_wallet_signing_key(self, address):
+        wallet = self._wallets[address]
+        return wallet.signing_key
+
+    def get_wallet_verifying_key(self, address):
+        wallet = self._wallets[address]
+        return wallet.verifying_key
+
+
 class Wallet:
     """
     A class represent the account data in the blockchain.
