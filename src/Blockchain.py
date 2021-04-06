@@ -181,7 +181,7 @@ class Blockchain:
         self._blocks = []
         self._bits = bits
         self._subsidy = subsidy
-        self._root_wallet = None
+        self._root_address = None
         self._wallet_pool = WalletPool()
         self._transaction_pool = TransactionPool()
         self._height = 0
@@ -230,6 +230,10 @@ class Blockchain:
     def wallet_num(self):
         return self._wallet_pool.size
 
+    @property
+    def size(self):
+        return len(self._blocks)
+
     def initialize(self, name):
         """Initialize the blockchain
 
@@ -250,7 +254,7 @@ class Blockchain:
 
         # Create an user
         wallet = self.create_user(name)
-        self._root_wallet = wallet
+        self._root_address = wallet.address
 
         self.increment_balance(wallet.address, self._subsidy)
 
@@ -259,9 +263,10 @@ class Blockchain:
         self._blocks.append(genesis_block)
 
         # Save the initialization data
-        self._save_block_data(genesis_block)
         self._save_metadata()
         self._save_genesis_data()
+
+        return wallet
 
     def create_user(self, name):
         """Create an user in the blockchain
@@ -276,7 +281,7 @@ class Blockchain:
         self._wallet_pool.add_wallet(wallet)
 
         # Update the address data
-        self._save_wallet_data(wallet)
+        self._save_wallet_pool_data()
 
         return wallet
 
@@ -445,6 +450,12 @@ class Blockchain:
         # Add transaction on the blockchain
         self._transaction_pool.add_transaction(tx)
 
+        # If the number of transactions reaches the threshold, create a new block
+        if self._transaction_pool.size >= self._threshold:
+            self.fire_transactions(source)
+
+        self._save_transaction_data()
+
     def _sign_transaction(self, source, tx_data):
         """Sing a transaction and add signature to the transaction
 
@@ -489,6 +500,12 @@ class Blockchain:
         # Verify the signature
         assert vk.verify(signature, tx_data)
 
+    def get_balance(self, address):
+        if self._wallet_pool.has_address(address):
+            return self._wallet_pool.wallet_balance(address)
+        else:
+            print('The account does not exist!!!')
+
     def have_balance(self, address, amount):
         """Check if an account has enough amount of balance
 
@@ -513,6 +530,7 @@ class Blockchain:
             the amount of balance to be incremented
         """
         self._wallet_pool.add_balance(address, amount)
+        self._save_wallet_pool_data()
 
     def decrement_balance(self, address, amount):
         """decrement an account's balance
@@ -524,6 +542,7 @@ class Blockchain:
             the amount of balance to be decremented
         """
         self._wallet_pool.sub_balance(address, amount)
+        self._save_wallet_pool_data()
 
     def move_balance(self, source, dest, amount):
         """Move balance from source account to dest account
@@ -587,7 +606,7 @@ class Blockchain:
         with open(f'{base_dir}/metadata', 'w+') as f:
             # Create a dictionary contains blockchain metadata
             d = {'bits': self._bits, 'subsidy': self._subsidy, 'height': len(
-                self._blocks), 'count': self._count, 'index': self._index}
+                self._blocks), 'count': self._count, 'index': self._index, 'root_address': self._root_address}
 
             # Dump data to json formatted data and save it
             data = json.dumps(d)
@@ -766,6 +785,7 @@ class Blockchain:
             self._height = metadata['height']
             self._count = metadata['count']
             self._index = metadata['index']
+            self._root_address = metadata['root_address']
 
     def _read_wallet_pool_data(self, path='/data/info'):
         """Read the blockchain account data from the path
@@ -781,7 +801,6 @@ class Blockchain:
         with open(f'{base_dir}/wallet', 'r') as f:
             # Each line of data is an account
             for line in f:
-                print(line)
                 # Process account data
                 raw_data = line.strip('\n')
                 wallet = Wallet.deserialize(raw_data)
@@ -862,10 +881,25 @@ class Blockchain:
                     block = Block.deserialize(data)
                     self._blocks.append(block)
 
-    def print_blocks(self):
-        """Print all the blockchain data"""
-        for block in self._blocks:
-            print(block)
+    def print_blocks(self, height=-1, direction='back'):
+        """Print blockchain data"""
+        if height < 0:
+            for block in self._blocks:
+                print(block)
+        else:
+            if height == 0:
+                print('Print nothing!')
+            elif height > len(blockchain._blocks):
+                print(
+                    'Invalid Command: The height must be less than or equal to the height of the blockchain !!!')
+            else:
+                if direction and direction == 'back':
+                    size = len(blockchain._blocks)
+                    for i in range(size - 1, size - height - 1, -1):
+                        print(blockchain._blocks[i])
+                else:
+                    for i in range(height):
+                        print(blockchain._blocks[i])
 
 
 def test_save_blocks():

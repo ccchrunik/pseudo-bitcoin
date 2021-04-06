@@ -153,6 +153,9 @@ class Block:
     def merkle_tree(self, merkle_tree):
         self._merkle_tree = merkle_tree
 
+    def print_block(self):
+        print(self)
+
     def set_hash(self):
         """Compute the hash of the block"""
 

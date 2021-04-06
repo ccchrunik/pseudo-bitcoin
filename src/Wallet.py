@@ -43,7 +43,6 @@ class WalletPool:
         wallet = self._wallets[address]
         wallet.sub_balance(amount)
 
-    @property
     def wallet_balance(self, address):
         return self._wallets[address].balance
 
