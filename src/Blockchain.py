@@ -20,7 +20,6 @@ from Transaction_Account import Transaction, TransactionPool
 
 # TODO: Complete CLI
 # TODO: Refactor CLI using decorator factory
-# TODO: Create a Account Transaction class to merge transaction_pool and balance_pool
 # TODO: Refactor read and save methods
 # TODO: Complete UTXO Model
 # TODO: Create virtual environment
@@ -178,7 +177,7 @@ class Blockchain:
         verify the top hash of the merkle tree of each block
     """
 
-    def __init__(self, bits=10, subsidy=50, threshold=100, data_path='/data'):
+    def __init__(self, bits=10, subsidy=50, threshold=100, path='/data'):
         self._blocks = []
         self._bits = bits
         self._subsidy = subsidy
@@ -189,8 +188,9 @@ class Blockchain:
         self._count = 0
         self._index = 0
         self._threshold = threshold
-        self._data_path = data_path
-        self._base_dir = os.getcwd() + self.data_path
+        self._base_dir = os.getcwd() + path
+        self._info_path = self._base_dir + '/info'
+        self._data_path = self._base_dir + '/data'
         self._data_file = None
         self._wallet_file = None
 
@@ -209,6 +209,10 @@ class Blockchain:
     @property
     def threshold(self):
         return self._threshold
+
+    @property
+    def info_path(self):
+        return self._info_path
 
     @property
     def data_path(self):
@@ -234,10 +238,15 @@ class Blockchain:
         name : str
             the first account name of the blockchain
         """
+        if not os.path.exists(self._info_path):
+            os.mkdir(self._info_path)
+
+        if not os.path.exists(self._data_path):
+            os.mkdir(self._data_path)
 
         # Open file handler to save initialization data
-        self._wallet_file = open(f'{self.base_dir}/wallet', 'w+')
-        self._data_file = open(f'{self.base_dir}/data-0', 'w+')
+        self._wallet_file = open(f'{self._info_path}/wallet', 'w+')
+        self._data_file = open(f'{self._data_path}/data-0', 'w+')
 
         # Create an user
         wallet = self.create_user(name)
@@ -540,22 +549,25 @@ class Blockchain:
             the path to store the blockchain data
         """
 
+        info_path = path + '/info'
+        data_path = path + '/data'
+
         # Save blockchain metadata
-        self._save_metadata(path)
+        self._save_metadata(info_path)
 
         # Save account data
-        self._save_wallet_pool_data(path)
-
-        # Save the genesis block data
-        self._save_genesis_data(path)
-
-        # Save blocks data
-        self._save_blocks_data(path)
+        self._save_wallet_pool_data(info_path)
 
         # Save uncommited transactions
-        self._save_transaction_data(path)
+        self._save_transaction_data(info_path)
 
-    def _save_metadata(self, path='/data'):
+        # Save the genesis block data
+        self._save_genesis_data(data_path)
+
+        # Save blocks data
+        self._save_blocks_data(data_path)
+
+    def _save_metadata(self, path='/data/info'):
         """Save blockchain metadata
 
         Parameters: 
@@ -581,7 +593,7 @@ class Blockchain:
             data = json.dumps(d)
             f.write(data + '\n')
 
-    def _save_wallet_data(self, addr, path='/data'):
+    def _save_wallet_data(self, addr, path='/data/info'):
         """Save an account address
 
         Parameters: 
@@ -597,7 +609,7 @@ class Blockchain:
         data = Wallet.serialize(addr)
         self._wallet_file.write(data + '\n')
 
-    def _save_wallet_pool_data(self, path='/data'):
+    def _save_wallet_pool_data(self, path='/data/info'):
         """Save all account address
 
         Parameters: 
@@ -612,12 +624,12 @@ class Blockchain:
         self._wallet_file.close()
 
         # Save the address data
-        with open(f'{self.base_dir}/wallet', 'w+') as f:
+        with open(f'{base_dir}/wallet', 'w+') as f:
             for address, wallet in self._wallet_pool.wallets:
                 data = Wallet.serialize(wallet)
                 f.write(data + '\n')
 
-    def _save_transaction_data(self, path='/data'):
+    def _save_transaction_data(self, path='/data/info'):
         """Save the unprocessed transaction data
 
         Parameters:
@@ -627,12 +639,12 @@ class Blockchain:
         """
         base_dir = os.getcwd() + path
         # Save transactions data record
-        with open(f'{self.base_dir}/transactions', 'w+') as f:
+        with open(f'{base_dir}/transactions', 'w+') as f:
             for tx_balance in self._transaction_pool.balance:
                 data = Transaction.serialize(tx_balance)
                 f.write(data + '\n')
 
-    def _save_genesis_data(self, path='/data'):
+    def _save_genesis_data(self, path='/data/data'):
         """Save genesis block data
 
         Parameters:
@@ -647,7 +659,7 @@ class Blockchain:
             data = Block.serialize(self._blocks[0])
             f.write(data + '\n')
 
-    def _save_block_data(self, block, path='/data'):
+    def _save_block_data(self, block, path='/data/data'):
         """Save a block data
 
         Parameters: 
@@ -673,7 +685,7 @@ class Blockchain:
         self._data_file.write(data + '\n')
         self._save_metadata()
 
-    def _save_blocks_data(self, path='/data'):
+    def _save_blocks_data(self, path='/data/data'):
         """Save blocks data in the blockchain
 
         Parameters:
@@ -716,15 +728,19 @@ class Blockchain:
         path : str
             the path to read the blockchain data
         """
-        self._read_metadata(path)
-        self._wallet_file = open(f'{self.base_dir}/wallet', 'a+')
-        self._data_file = open(f'{self.base_dir}/data-{self._index}', 'a+')
-        self._read_wallet_pool_data(path)
-        self._read_transaction_data(path)
-        self._read_genesis_data(path)
-        self._read_blocks_data(path)
+        info_path = path + '/info'
+        data_path = path + '/data'
 
-    def _read_metadata(self, path='/data'):
+        self._wallet_file = open(f'{self.base_dir}/info/wallet', 'a+')
+        self._data_file = open(
+            f'{self.base_dir}/data/data-{self._index}', 'a+')
+        self._read_metadata(info_path)
+        self._read_wallet_pool_data(info_path)
+        self._read_transaction_data(info_path)
+        self._read_genesis_data(data_path)
+        self._read_blocks_data(data_path)
+
+    def _read_metadata(self, path='/data/info'):
         """Read the blockchain metadata
 
         Parameters:
@@ -751,7 +767,7 @@ class Blockchain:
             self._count = metadata['count']
             self._index = metadata['index']
 
-    def _read_wallet_pool_data(self, path='/data'):
+    def _read_wallet_pool_data(self, path='/data/info'):
         """Read the blockchain account data from the path
 
         Parameters:
@@ -771,7 +787,7 @@ class Blockchain:
                 wallet = Wallet.deserialize(raw_data)
                 self._wallet_pool.add_wallet(wallet)
 
-    def _read_transaction_data(self, path='/data'):
+    def _read_transaction_data(self, path='/data/info'):
         """Read the unprocessed transaction data
 
         Parameters:
@@ -799,7 +815,7 @@ class Blockchain:
         with open(f'{base_dir}/transactions', 'w+') as f:
             pass
 
-    def _read_genesis_data(self, path='/data'):
+    def _read_genesis_data(self, path='/data/data'):
         """Read the genesis block data
 
         Parameters:
@@ -815,7 +831,7 @@ class Blockchain:
             block = Block.deserialize(data)
             self._blocks.append(block)
 
-    def _read_blocks_data(self, path='/data'):
+    def _read_blocks_data(self, path='/data/data'):
         """Read the blocks data
 
         Parameters:
@@ -828,14 +844,8 @@ class Blockchain:
         # Get all file in the directory
         dir_list = os.listdir(base_dir)
 
-        # Remove unrelated files
-        if os.path.exists(f'{base_dir}/genesis'):
-            dir_list.remove('genesis')
-            dir_list.remove('metadata')
-            dir_list.remove('wallet')
-
-        if os.path.exists(f'{base_dir}/transactions'):
-            dir_list.remove('transactions')
+        # Remove genesis block data
+        dir_list.remove(f'genesis')
 
         # Sort the file to get the right time sequence
         sort_dir = sorted(dir_list)
