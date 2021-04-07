@@ -176,8 +176,12 @@ class Wallet:
         h.update(m.digest())
         key_hash = h.digest()
 
+        m = hashlib.sha256()
         m.update(key_hash)
-        m.update(key_hash)
+        temp = m.digest()
+
+        m = hashlib.sha256()
+        m.update(temp)
         checksum = m.digest()
 
         addr = key_hash + checksum
@@ -193,8 +197,12 @@ class Wallet:
         m.update(vk)
         key_hash = h.update(m.digest())
 
+        m = hashlib.sha256()
         m.update(key_hash)
-        m.update(key_hash)
+        temp = m.digest()
+
+        m = hashlib.sha256()
+        m.update(temp)
         checksum = m.digest()
 
         addr = key_hash + checksum

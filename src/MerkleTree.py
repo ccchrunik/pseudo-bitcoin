@@ -15,8 +15,8 @@ class MerkleTree:
 
     Methods
     ----------
-    hash() : str (base64)
-        return the top hash of the merkle tree
+    hash() : str
+        return the base64 encoded top hash of the merkle tree
 
     Static Methods
     ----------
@@ -47,7 +47,7 @@ class MerkleTree:
 
         Returns
         ----------
-        self.root.data : str (base64)
+        self.root.data : str 
             return the base64 encoded top hash value
         """
         return self.root.data

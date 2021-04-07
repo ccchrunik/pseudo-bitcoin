@@ -45,10 +45,10 @@ class Block:
 
     Methods: 
     ----------
-    set_hash() : void
+    set_hash() : None
         compute the hash of the block and append this and nonce to the block attributes
 
-    create_merkle_tree() : void 
+    create_merkle_tree() : None
         create a merkle tree based on the transactions
 
     Static Methods:

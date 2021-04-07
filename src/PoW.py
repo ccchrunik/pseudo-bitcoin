@@ -40,7 +40,7 @@ class PoW:
     run() : int, str
         compute and then return the nonce and the valid hash to the caller
 
-    prepare(nonce) : void
+    prepare(nonce) : None
         prepared for candidate hash using the given nonce
 
     validate() : bool
@@ -102,7 +102,16 @@ class PoW:
         self._data = data
 
     def run(self):
-        """Return the nonce and valid hash to the caller function"""
+        """Return the nonce and valid hash to the caller function
+
+        Returns:
+        ----------
+        nonce : int
+            nonce to produce valid hash
+
+        hash : str
+            the base64 encoded valid hash
+        """
         nonce = 0
         # Increment nonce by once after each loop until we find a valid one
         while True:
