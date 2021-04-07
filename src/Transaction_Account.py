@@ -33,6 +33,10 @@ class TransactionPool:
     def balance(self):
         return [tx.balance for tx in self._transactions]
 
+    @property
+    def transactions(self):
+        return self._transactions
+
 
 class Transaction:
     def __init__(self, source, dest, amount):
@@ -96,9 +100,9 @@ class Transaction:
         return vk.verify(signature, record)
 
     @staticmethod
-    def serialize(tx_balance):
-        source, dest, amount = tx_balance
-        d = {'source': source, 'dest': dest, 'amount': amount}
+    def serialize(tx):
+        d = {'source': tx.source, 'dest': tx.dest,
+             'amount': tx.amount, 'signature': tx.signature}
         data = json.dumps(d)
         return data
 
@@ -106,4 +110,5 @@ class Transaction:
     def deserialize(raw_data):
         data = json.loads(raw_data)
         tx = Transaction(data['source'], data['dest'], data['amount'])
+        tx._signature = data['signature']
         return tx

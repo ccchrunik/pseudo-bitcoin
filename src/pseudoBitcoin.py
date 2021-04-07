@@ -11,7 +11,6 @@ from Blockchain import Blockchain
 @click.option('-a', '--address', 'address', type=str, help='account address')
 @click.option('-u', '--username', 'username', type=str, help='create a new user one the blockchain')
 @click.option('-b', '--balance', 'balance', type=int, help='value to add to or substract from account balance')
-# @click.option('-t', '--transaction', 'tx', type=str, help='Add trasactions')
 @click.option('-h', '--height', 'height', type=int, help='Print blocks with the given height in the blockchain')
 @click.option('-d', '--direction', 'direction', type=str, help='The direction of print block funcion (front or back)')
 @click.option('-from', 'src', type=str, help='transaction source')

@@ -18,9 +18,7 @@ from Wallet import Wallet, WalletPool
 from MerkleTree import MerkleTree
 from Transaction_Account import Transaction, TransactionPool
 
-# TODO: Complete CLI
 # TODO: Refactor CLI using decorator factory
-# TODO: Refactor read and save methods
 # TODO: Complete UTXO Model
 # TODO: Create virtual environment
 # TODO: Add Client-Server Network Model
@@ -424,6 +422,9 @@ class Blockchain:
         # Clear the transaction records and balance
         self._transaction_pool.reset()
 
+        with open(f'{self._info_path}/transactions', 'w+') as f:
+            pass
+
     def add_transaction(self, source, dest, amount):
         """Add a transaction to the transaction pool
 
@@ -446,6 +447,8 @@ class Blockchain:
 
         # Create a transaction
         tx = Transaction(source, dest, amount)
+        sk = self._wallet_pool.get_wallet_signing_key(source)
+        Transaction.sign(tx, sk)
 
         # Add transaction on the blockchain
         self._transaction_pool.add_transaction(tx)
@@ -659,8 +662,8 @@ class Blockchain:
         base_dir = os.getcwd() + path
         # Save transactions data record
         with open(f'{base_dir}/transactions', 'w+') as f:
-            for tx_balance in self._transaction_pool.balance:
-                data = Transaction.serialize(tx_balance)
+            for tx in self._transaction_pool.transactions:
+                data = Transaction.serialize(tx)
                 f.write(data + '\n')
 
     def _save_genesis_data(self, path='/data/data'):
