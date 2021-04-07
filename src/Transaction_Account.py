@@ -19,10 +19,10 @@ class TransactionPool:
     records : List[str]
         the transaction records of transactions
 
-    balance : List[str]
+    balance : List[tuple]
         the transactions balance move record of transactions
 
-    transactions : List[str]
+    transactions : List[Transaction]
         the transactions list in the pool
 
     Methods:
