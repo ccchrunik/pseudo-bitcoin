@@ -360,6 +360,7 @@ class Blockchain:
 
     @staticmethod
     def verify_blocks(block1, block2):
+        # TODO: it seems to be a redundant function
         """Verify the top hash of the merkle tree of each block
 
         Parameters:
@@ -371,6 +372,26 @@ class Blockchain:
             a block
         """
         return block1.merkle_tree.hash == block2.merkle_tree.hash
+
+    def verify_block_hash(self, block):
+        # TODO: verify all transactions in the block and also the hash of the block
+        pass
+
+    def verify_merkle_hash(self, block):
+        # TODO: verify the merkle hash of the block
+        pass
+
+    def verify_transaction_hash(self, tx):
+        # TODO: verify a transaction hash
+        pass
+
+    def _append_block(self, block):
+        # TODO: the next function to call after a block is verified
+        pass
+
+    def sync_blockchain(self,  block):
+        # TODO: a wrapper function for verification and synchronize the blockchain
+        pass
 
     def _new_coinbase_tx_account(self, transactions, address):
         """Add reward to the miner and add a block to the blockchain
@@ -405,16 +426,26 @@ class Blockchain:
         name : str
             the name of the miner
         """
-
-        # Add transactions records in the blockchain
-        self._new_coinbase_tx_account(self._transaction_pool.records, address)
+        # Retrieve transactions data
+        balance_pool = self._transaction_pool.balance
+        record_pool = self._transaction_pool.records
+        records = []
 
         # Move money between account based on each transaction
-        for source, dest, amount in self._transaction_pool.balance:
+        for i in range(len(balance_pool)):
+            source, dest, amount = balance_pool[i]
+            # Check if the source wallet has enough balance
             if not self.have_balance(source, amount):
-                raise ValueError(
-                    f'{source} has no enough balance for transaction!!!')
+                print(f'{source} has no enough balance !!!')
+                continue
+
             self.move_balance(source, dest, amount)
+
+            # Add valid transaction records in the list
+            records.append(record_pool[i])
+
+        # Add transactions records in the blockchain
+        self._new_coinbase_tx_account(records, address)
 
         # Save updated account data
         self._save_wallet_pool_data()

@@ -42,26 +42,42 @@ class TransactionPool:
 
     @property
     def size(self):
+        """The number of transactions in the pool"""
         return len(self._transactions)
 
     @property
     def records(self):
+        """The record list of transactions in the pool"""
         return [tx.signed_record for tx in self._transactions]
 
     @property
     def balance(self):
+        """The balance list of transactions wallet"""
         return [tx.balance for tx in self._transactions]
 
     @property
     def transactions(self):
+        """The transactions list in the pool"""
         return self._transactions
 
     def add_transaction(self, transaction):
-        """Add a transaction into the pool"""
+        """Add a transaction into the pool
+
+        Parameters:
+        ----------
+        transaction : Transaction
+            the transaction to be added to the pool
+        """
         self._transactions.append(transaction)
 
     def pop_transaction(self, index):
-        """Pop a transaction out of the pool at the given index"""
+        """Pop a transaction out of the pool at the given index
+
+        Parameters:
+        ----------
+        index : int
+            the index of the transaction to be removed in the pool
+        """
         if index >= 0 and index < len(self._transactions):
             self._transactions.pop(index)
         else:
@@ -112,7 +128,7 @@ class Transaction:
     serialize(tx) : str
         transform a transaction into a string
 
-    deserialize(raw_data) : 
+    deserialize(raw_data) : Transaction
         transform data back to a transaction
     """
 
@@ -127,18 +143,22 @@ class Transaction:
 
     @property
     def source(self):
+        """The sender address"""
         return self._source
 
     @property
     def dest(self):
+        """The receiver address"""
         return self._dest
 
     @property
     def amount(self):
+        """The amounf of value to be transferred"""
         return self._amount
 
     @property
     def signature(self):
+        """The signature of the transaction"""
         return self._signature
 
     @signature.setter
@@ -147,14 +167,17 @@ class Transaction:
 
     @property
     def record(self):
+        """The transaction record of the transaction"""
         return f'from: {self._source} -- to: {self._dest} -- amount: {self._amount}'
 
     @property
     def balance(self):
+        """The transaction value pair of the transaction"""
         return (self._source, self._dest, self._amount)
 
     @property
     def signed_record(self):
+        """The combination of the transaction record and signature"""
         if self.signature:
             return f'{self.record}|{self.signature}'
         else:
@@ -162,7 +185,21 @@ class Transaction:
 
     @staticmethod
     def sign(tx, sk):
-        """Sign a transaction and set the signature in a transaction"""
+        """Sign a transaction and set the signature in a transaction
+
+        Parameters:
+        ----------
+        tx : Transaction
+            a transaction instance
+
+        sk : SigningKey
+            the signing key (private key) of a wallet
+
+        Returns:
+        ----------
+        signed_record : str
+            the signed transaction record
+        """
         signature = base58.b58encode(sk.sign(tx.record.encode())).decode()
         tx.signature = signature
 
@@ -170,7 +207,21 @@ class Transaction:
 
     @staticmethod
     def verify(tx, vk):
-        """Verify the signature of a record"""
+        """Verify the signature of a record
+
+        Parameters:
+        ----------
+        tx : Transaction
+            a transaction instance
+
+        vk : VerifyingKey
+            the verifying key (public key) of a wallet
+
+        Returns:
+        ----------
+        result : bool
+            the result of whether the transaction is valid
+        """
         record, signature = sign_data.split('|')
 
         record = record.encode()
@@ -180,7 +231,18 @@ class Transaction:
 
     @staticmethod
     def serialize(tx):
-        """Transform a transaction into a string"""
+        """Transform a transaction into a string
+
+        Parameters:
+        ----------
+        tx : Transaction
+            the transaction to be serialized
+
+        Returns:
+        ----------
+        data : str
+            the json formatted representation of the transaction
+        """
         d = {'source': tx.source, 'dest': tx.dest,
              'amount': tx.amount, 'signature': tx.signature}
         data = json.dumps(d)
@@ -188,7 +250,18 @@ class Transaction:
 
     @staticmethod
     def deserialize(raw_data):
-        """Transform a string back into a transaction"""
+        """Transform a string back into a transaction
+
+        Parameters:
+        ----------
+        raw_data : str
+            the json formatted string representation of a transaction
+
+        Returns:
+        ----------
+        tx : Transaction
+            a Transaction instance based on the given data
+        """
         data = json.loads(raw_data)
         tx = Transaction(data['source'], data['dest'], data['amount'])
         tx._signature = data['signature']
