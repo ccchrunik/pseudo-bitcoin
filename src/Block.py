@@ -48,8 +48,12 @@ class Block:
     set_hash() : None
         compute the hash of the block and append this and nonce to the block attributes
 
-    create_merkle_tree() : None
+    _create_merkle_tree() : None
         create a merkle tree based on the transactions
+
+    print_block() : None
+        print the block
+
 
     Static Methods:
     ----------
@@ -115,30 +119,37 @@ class Block:
 
     @property
     def height(self):
+        """The position of the block in the blockchain"""
         return self._height
 
     @property
     def time(self):
+        """The time the block being created"""
         return self._time
 
     @property
     def bits(self):
+        """The hardness of the PoW when the block was created"""
         return self._bits
 
     @property
     def nonce(self):
+        """The nonce of the block"""
         return self._nonce
 
     @property
     def transactions(self):
+        """The transactions list of the block"""
         return self._transactions
 
     @property
     def prev_hash(self):
+        """The hash of the previous block"""
         return self._prev_hash
 
     @property
     def hash(self):
+        """The hash of the block"""
         return self._hash
 
     @hash.setter
@@ -147,6 +158,7 @@ class Block:
 
     @property
     def merkle_tree(self):
+        """The merkle tree of the block"""
         return self._merkle_tree
 
     @merkle_tree.setter
@@ -154,6 +166,7 @@ class Block:
         self._merkle_tree = merkle_tree
 
     def print_block(self):
+        """Print the block"""
         print(self)
 
     def set_hash(self):
@@ -166,14 +179,18 @@ class Block:
         self._nonce, self._hash = Pow.run()
 
     def _create_merkle_tree(self):
-        """Construct a merkle tree based on the transactions"""
-        return MerkleTree.new_merkle_tree(self.transactions)
+        """Construct a merkle tree based on the transactions
 
-    # serialize a block
+        Returns:
+        ----------
+        merkle_tree : MerkleTree
+            the merkle tree of the block based on the transactions
+        """
+        return MerkleTree.new_merkle_tree(self.transactions)
 
     @staticmethod
     def serialize(block):
-        """Serialize a block instance
+        """Serialize a block
 
         Parameters: 
         ----------

@@ -1,3 +1,4 @@
+# standard modules
 import hashlib
 import base64
 
@@ -145,6 +146,7 @@ class MerkleNode:
 
     @property
     def left(self):
+        """The left child node of this node"""
         return self._left
 
     @left.setter
@@ -153,6 +155,7 @@ class MerkleNode:
 
     @property
     def right(self):
+        """The right child node of this node"""
         return self._right
 
     @right.setter
@@ -161,6 +164,7 @@ class MerkleNode:
 
     @property
     def data(self):
+        """The data of this node"""
         return self._data
 
     @data.setter

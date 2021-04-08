@@ -14,11 +14,11 @@ class PoW:
 
     Attributes:
     ----------
-    _block : Block
+    block : Block
         the Block instance ready for hash computation
 
-    _target : int
-        the threshold of the computation, if less than target, meaning we find an valid nonce
+    threshold : int
+        the threshold of the computation, if less than thershold, meaning we find an valid nonce
 
     salt : str
         used for improve the security of the hash computation
@@ -79,14 +79,17 @@ class PoW:
 
     @property
     def block(self):
+        """The block"""
         return self._block
 
     @property
     def threshold(self):
+        """The threshold for the hash to be evaluated as valid or not"""
         return self._threshold
 
     @property
     def hash(self):
+        """The hash of the block"""
         return self._hash
 
     @hash.setter
@@ -95,6 +98,7 @@ class PoW:
 
     @property
     def data(self):
+        """The block data to be hashed"""
         return self._data
 
     @data.setter
@@ -148,7 +152,12 @@ class PoW:
             f'nonce = {nonce}, hash = {print_hash}', end='\r')
 
     def _validate(self):
-        """Check if the computed hash is less than the threshold"""
+        """Check if the computed hash is less than the threshold
+
+        Returns:
+        result : bool
+            whether the hash is less than the threshold
+        """
         if self._hash < self._threshold:
             return True
         else:
