@@ -48,9 +48,6 @@ class Block:
     set_hash() : None
         compute the hash of the block and append this and nonce to the block attributes
 
-    _create_merkle_tree() : None
-        create a merkle tree based on the transactions
-
     print_block() : None
         print the block
 

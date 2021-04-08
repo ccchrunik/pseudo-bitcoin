@@ -246,8 +246,6 @@ class Wallet:
     sub_balance(amount) : None
         subtract the amount from the wallet balance
 
-    _create_address() : None
-        create the address of the wallet
 
     Static Methods:
     ----------

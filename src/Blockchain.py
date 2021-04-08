@@ -36,32 +36,14 @@ class Blockchain:
 
     Attributes:
     ----------
-    _blocks : List[Block]
-        the blocks in the blockchain
+    blocks : List[Block]
+        the blocks on the blockchain
 
     bits : int 
-        the PoW hardness in the current blockchain, can change between blocks
+        the PoW hardness on the current blockchain, can change between blocks
 
     subsify : int
         the mining reward of a block 
-
-    address_pool : Dict(str -> Address)
-        the dictionary to store the all account address
-
-    transaction_pool : List[str]
-        the pending transactions records to be added to the next block
-
-    balance_pool : List[(str, str, int)]
-        the actual transactions waiting to be written in the blockchain 
-
-    height : int
-        the height of the blockchain
-
-    count : int 
-        internal variable for controlling the data file name
-
-    index : int
-        internal variable for controlling the data file name
 
     threshold : int
         internal variable as the trigger threshold to change the file name
@@ -69,14 +51,20 @@ class Blockchain:
     data_path : str
         the path the blockchain to save the block data in the file system
 
+    info_path : str
+        the path the blockchain to save the metadata in the file system
+
     base_dir : str 
         the base directory name of this project
 
-    data_file : file
-        the file handler that the blockchain write the block data to
+    wallet_num : int
+        the number of wallets on the blockchain
 
-    address_file : file
-        the file handler that the blockchain write the address data to
+    tx_num : int
+        the uncommited transactions on the blockchain
+
+    size : int
+        the number blocks on the blockchain
 
 
     Methods: 
@@ -87,83 +75,17 @@ class Blockchain:
     create_user(name) : void
         create an user with the given name in the address pool
 
-    new_block_data(prev_height, transactions, prev_hash) : Block
-        create a new block, internal method
-
-    new_genesis_block(name) : Block
-        create the genesis block, internal method
-
-    add_block(transactions, name) : void
-        create a new block and add it to the blockchain, internal method
-
-    new_coinbase_tx_account(transactions, name) : void
-        add reward to miner and add a block to the blockchain, internal method
-
-    fire_transactions(self, name='Eric Chen') : void 
-        aggregate all transactions in the blockchain to a single block and add it to the blockchain, internal method
+    fire_transactions(self, address) : void 
+        aggregate all transactions in the blockchain in a single block and add it to the blockchain
 
     add_transaction(source, dest, amount) : void
         add a transaction to the transaction
 
-    sign_transaction(source, tx_data) : void
-        sign a transaction using source's signing key and add signature after the transaction, internal method
-
-    verify_transaction(source, sign_data) : void
-        assert whether that a transaction is valid, internal method
-
-    have_balance(name, amount) : bool
-        check if an account has enough balance, internal method
-
-    increment_balance(name, amount) : void
-        increment an account's balance, internal method
-
-    decrement_balance(name, amount) : void
-        decrement an account's balance, internal method
-
-    move_balance(source, dest, amount) : void
-        move balance from source account to destination acccount, internal method
-
     save_blockchain(path='/data') : void
-        save blockchain data under the path directory under the project folder
-
-    save_metadata(path='/data') : void
-        save the blockchain metadata under the path directory under the project folder, internal method
-
-    save_address_data(addr, path='/data') : void
-        save the blockchain address data under the path directory under the project folder, internal method
-
-    save_address_pool_data(path='/data') : void
-        save the blockchain all addresses data under the path directory under the project folder, internal method
-
-    save_genesis_data(path='/data') : void
-        save the blockchain genesis block data under the path directory under the project folder, internal method
-
-    save_transaction_data(path='/data') : void
-        save the blockchain unprocessed transactions under the path directory under the project folder, internal method
-
-    save_block_data(path='/data') : void
-        save a block data under the path directory under the project folder, internal method
-
-    save_blocks_data(path='/data') : void
-        save all blockchain blocks under the path directory under the path directory, internal method
+        save blockchain data under the path directory 
 
     read_blockchain(path='/data') : void
-        read all blockchain blocks under the path directory under the path directory, internal method
-
-    read_address_pool_data(path='/data') : void
-        read all account data under the path directory under the path directory, internal method
-
-    read_genesis_data(path='/data') : void
-        read the genesis block data under the path directory under the project folder, internal method
-
-    read_metadata_data(path='/data') : void
-        read the blockchain metadata under the path directory under the project folder, internal method
-
-    read_transaction_data(path='/data') : void
-        read the unprocessed transaction data under the path directory under the project folder, internal method
-
-    read_blocks_data(path='/data') : void
-        read the blocks data under the path directory under the project folder, internal method
+        read all the blockchain data under the path directory
 
     print_blocks() : void
         print all blocks in the blockchain
@@ -176,6 +98,21 @@ class Blockchain:
     """
 
     def __init__(self, bits=10, subsidy=50, threshold=100, path='/data'):
+        """
+        Parameters:
+        ----------
+        bits : int
+            the hardness of the PoW
+
+        subsidy : int
+            the reward of a block for miners
+
+        threshold : int
+            the maximal number of transactions in a block
+
+        path : str
+            the relative path to store the blockchain data
+        """
         self._blocks = []
         self._bits = bits
         self._subsidy = subsidy
@@ -194,42 +131,52 @@ class Blockchain:
 
     @property
     def blocks(self):
+        """The blocks of the blockchain"""
         return self._blocks
 
     @property
     def bits(self):
+        """The hardness of the blockchain"""
         return self._bits
 
     @property
     def subsidy(self):
+        """The miner reward of the blockchain"""
         return self._subsidy
 
     @property
     def threshold(self):
+        """The maximal number of transactions in a block"""
         return self._threshold
 
     @property
     def info_path(self):
+        """The blockchain metadata storage path"""
         return self._info_path
 
     @property
     def data_path(self):
+        """The blockchain blocks data storage path"""
         return self._data_path
 
     @property
     def base_dir(self):
+        """The base directory of the storage path"""
         return self._base_dir
 
     @property
     def tx_num(self):
+        """The number of uncommited transactions"""
         return self._transaction_pool.size
 
     @property
     def wallet_num(self):
+        """The number of wallets on the blockchain"""
         return self._wallet_pool.size
 
     @property
     def size(self):
+        """The number of blocks on the blockchain"""
         return len(self._blocks)
 
     def initialize(self, name):
@@ -240,6 +187,8 @@ class Blockchain:
         name : str
             the first account name of the blockchain
         """
+
+        # Make sure the path exists
         if not os.path.exists(self._info_path):
             os.mkdir(self._info_path)
 
@@ -250,10 +199,11 @@ class Blockchain:
         self._wallet_file = open(f'{self._info_path}/wallet', 'w+')
         self._data_file = open(f'{self._data_path}/data-0', 'w+')
 
-        # Create an user
+        # Create the root user
         wallet = self.create_user(name)
         self._root_address = wallet.address
 
+        # Add the reward to the root address
         self.increment_balance(wallet.address, self._subsidy)
 
         # Create the genesis block
@@ -274,11 +224,11 @@ class Blockchain:
         name : str
             create an user based on the given name
         """
-        # Add to the address pool
+        # Create and add a wallet to the wallet pool
         wallet = Wallet(name, 0)
         self._wallet_pool.add_wallet(wallet)
 
-        # Update the address data
+        # Update the wallet pool data
         self._save_wallet_pool_data()
 
         return wallet
@@ -320,8 +270,8 @@ class Blockchain:
 
         Parameters: 
         ----------
-        name : str
-            the name of first account
+        address : str
+            the address of the root account
 
         Returns: 
         ---------- 
@@ -346,16 +296,15 @@ class Blockchain:
         Parameters:
         ---------- 
         transactions : List[str]
-            the transactions of the created block
-
-        name : str
-            the name of the miner
+            the transactions records of the created block
         """
+        # Get the hash of the previous block
         prev_block = self._blocks[-1]
 
         # Create and append a new block to the blockchain
         new_block = self._new_block(
             prev_block.height, transactions, prev_block.hash)
+
         self._blocks.append(new_block)
 
     @staticmethod
@@ -401,8 +350,8 @@ class Blockchain:
         transactions : List[str]
             the transactions of the block
 
-        name : str
-            the name of the miner 
+        address : str
+            the address of the miner 
         """
         # Create and sign a reward transaction
         miner_data = f'Reward ${self.subsidy} to {address}'
@@ -419,14 +368,14 @@ class Blockchain:
         self._save_block_data(self._blocks[-1])
 
     def fire_transactions(self, address):
-        """Aggregate all transactions in the blockchain to a single block and add it to the blockchain, internal method
+        """Aggregate all transactions in the blockchain in a single block and add it to the blockchain, internal method
 
         Parameters:
         ---------- 
-        name : str
-            the name of the miner
+        address : str
+            the address of the miner
         """
-        # Retrieve transactions data
+        # Retrieve transactions records and tranferred data
         balance_pool = self._transaction_pool.balance
         record_pool = self._transaction_pool.records
         records = []
@@ -439,6 +388,7 @@ class Blockchain:
                 print(f'{source} has no enough balance !!!')
                 continue
 
+            # Actually make a transaction
             self.move_balance(source, dest, amount)
 
             # Add valid transaction records in the list
@@ -453,6 +403,7 @@ class Blockchain:
         # Clear the transaction records and balance
         self._transaction_pool.reset()
 
+        # Clear the transaction file
         with open(f'{self._info_path}/transactions', 'w+') as f:
             pass
 
@@ -488,6 +439,7 @@ class Blockchain:
         if self._transaction_pool.size >= self._threshold:
             self.fire_transactions(source)
 
+        # Save transaction data
         self._save_transaction_data()
 
     def _sign_transaction(self, source, tx_data):
@@ -524,6 +476,11 @@ class Blockchain:
 
         sign_data : str
             the signed transaction
+
+        Returns:
+        ----------
+        result : bool
+            the result of whether the transaction is valid
         """
         # Process the signed transaction
         vk = self._wallet_pool.get_wallet_verifying_key(source)
@@ -532,9 +489,21 @@ class Blockchain:
         signature = base58.b58decode(signature.encode())
 
         # Verify the signature
-        assert vk.verify(signature, tx_data)
+        return vk.verify(signature, tx_data)
 
     def get_balance(self, address):
+        """Get the balance of an account
+
+        Parameters:
+        ----------
+        address : Wallet.address (str)
+            the wallet address
+
+        Returns:
+        ----------
+        balance : int
+            the wallet balance
+        """
         if self._wallet_pool.has_address(address):
             return self._wallet_pool.wallet_balance(address)
         else:
@@ -548,6 +517,11 @@ class Blockchain:
 
         amount : int
             the amount of balance
+
+        Returns:
+        ----------
+        result : bool
+            the result of whether a wallet has enough balance
         """
         if self._wallet_pool.has_balance(address, amount):
             return True
@@ -646,20 +620,20 @@ class Blockchain:
             data = json.dumps(d)
             f.write(data + '\n')
 
-    def _save_wallet_data(self, addr, path='/data/info'):
+    def _save_wallet_data(self, wallet, path='/data/info'):
         """Save an account address
 
         Parameters: 
         ---------
-        name : Address
-            the account to be stored
+        wallet : Wallet
+            the wallet to be stored
 
         path : str
             the path to store the account address
         """
         # Get the base directory
         base_dir = os.getcwd() + path
-        data = Wallet.serialize(addr)
+        data = Wallet.serialize(wallet)
         self._wallet_file.write(data + '\n')
 
     def _save_wallet_pool_data(self, path='/data/info'):
@@ -916,7 +890,16 @@ class Blockchain:
                     self._blocks.append(block)
 
     def print_blocks(self, height=-1, direction='back'):
-        """Print blockchain data"""
+        """Print blockchain data
+
+        Parameters:
+        ----------
+        height : int
+            control the proportion of the blockchain to be printed
+
+        direction : str
+            the direction of showing the result
+        """
         if height < 0:
             for block in self._blocks:
                 print(block)
