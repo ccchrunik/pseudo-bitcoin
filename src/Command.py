@@ -62,7 +62,6 @@ def execute_create_user(arg):
     blockchain.read_blockchain()
 
     username = arg['username']
-    print(arg)
 
     if not username:
         print('You have to provide an username!!!')
@@ -108,24 +107,6 @@ def execute_get_balance(arg):
     print(f'Balance = {balance}')
 
 
-@ execute.register('printchain')
-def execute_print_chain(arg):
-    blockchain = Blockchain()
-    blockchain.read_blockchain()
-    blockchain.print_blocks()
-
-
-@ execute.register('printblock')
-def execute_print_block(arg):
-    blockchain = Blockchain()
-    blockchain.read_blockchain()
-
-    height = arg['height']
-    direction = arg['direction']
-
-    blockchain.print_blocks(height, direction)
-
-
 @ execute.register('send')
 def execute_send(arg):
     blockchain = Blockchain()
@@ -135,6 +116,7 @@ def execute_send(arg):
     dest = arg['dest']
     amount = arg['amount']
     option = arg['option']
+    rep = arg['rep']
 
     if not src or not dest or not amount:
         print('You miss some argument!!!')
@@ -152,6 +134,24 @@ def execute_send(arg):
 
     if option and option == 'force':
         blockchain.fire_transactions(blockchain._root_address)
+
+
+@ execute.register('printchain')
+def execute_print_chain(arg):
+    blockchain = Blockchain()
+    blockchain.read_blockchain()
+    blockchain.print_blocks()
+
+
+@ execute.register('printblock')
+def execute_print_block(arg):
+    blockchain = Blockchain()
+    blockchain.read_blockchain()
+
+    height = arg['height']
+    direction = arg['direction']
+
+    blockchain.print_blocks(height, direction)
 
 
 if __name__ == '__main__':

@@ -24,10 +24,6 @@ def main(cmd, name, address, username, balance, height, direction, src, dest, am
     info_path = path + '/info'
     data_path = path + '/data'
 
-    # if :
-    #     print("You haven't create a blockchain!!!")
-    #     return
-
     cmd = cmd.lower()
 
     arg = {'cmd': cmd,
