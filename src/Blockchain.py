@@ -69,25 +69,25 @@ class Blockchain:
 
     Methods: 
     ----------
-    initialize(name) : void
+    initialize(name) : None
         initialize the blockchain with the provided name
 
-    create_user(name) : void
+    create_user(name) : None
         create an user with the given name in the address pool
 
-    fire_transactions(self, address) : void 
+    fire_transactions(self, address) : None
         aggregate all transactions in the blockchain in a single block and add it to the blockchain
 
-    add_transaction(source, dest, amount) : void
+    add_transaction(source, dest, amount) : None
         add a transaction to the transaction
 
-    save_blockchain(path='/data') : void
+    save_blockchain(path='/data') : None
         save blockchain data under the path directory 
 
-    read_blockchain(path='/data') : void
+    read_blockchain(path='/data') : None
         read all the blockchain data under the path directory
 
-    print_blocks() : void
+    print_blocks() : None
         print all blocks in the blockchain
 
 
@@ -926,24 +926,25 @@ def test_save_blocks():
     try:
         blockchain.initialize('Eric Chen')
         wallets = [None for _ in range(11)]
-        root_wallet = blockchain._root_wallet
-        wallets[0] = root_wallet
-        blockchain.increment_balance(wallets[0].address, 10000)
+        root_address = blockchain._root_address
+        blockchain.increment_balance(root_address, 10000)
         # blockchain.increment_balance('Eric Chen', 1000000)
 
         for i in range(1, 11):
-            wallet = blockchain.create_user(f'my address {i}')
-            wallets[i] = wallet
+            blockchain.create_user(f'my address {i}')
+
+        addresses = [address for address, wallet in list(
+            blockchain._wallet_pool.wallets)]
 
         for i in range(1, 201):
             if blockchain.tx_num >= 100:
-                blockchain.fire_transactions(wallets[0].address)
+                blockchain.fire_transactions(addresses[0])
 
             winner = random.randint(1, 10)
             blockchain.add_transaction(
-                wallets[0].address, wallets[winner].address, 80)
+                addresses[0], addresses[winner], 80)
         if blockchain.tx_num >= 100:
-            blockchain.fire_transactions(wallets[0].address)
+            blockchain.fire_transactions(addresses[0])
     except ValueError as e:
         blockchain.save_blockchain()
     except KeyboardInterrupt:

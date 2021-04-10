@@ -120,8 +120,14 @@ def execute_add_balance(arg):
     address = arg['address']
     balance = arg['balance']
 
-    if not address or not balance:
-        print('You miss some argument!!!')
+    if not address:
+        print('You have to give you account address!!!')
+
+    elif not balance:
+        print('You have to give the "balance" to be incremented!!!')
+
+    elif not blockchain._wallet_pool.has_address(address):
+        print(f'The address {address} does not exist!!!')
 
     elif balance <= 0:
         print('The amount must be greater than 0!!!')
@@ -148,11 +154,16 @@ def execute_get_balance(arg):
 
     if not address:
         print('You have to give you account address!!!')
-        return
 
-    balance = blockchain.get_balance(address)
-    print(f'Address: {address}')
-    print(f'Balance = {balance}')
+    elif not blockchain._wallet_pool.has_address(address):
+        print(f'The address {address} does not exist!!!')
+
+    else:
+        balance = blockchain.get_balance(address)
+        print(f'Address: {address}')
+        print(f'Balance = {balance}')
+
+    return
 
 
 @ execute.register('send')
@@ -182,12 +193,20 @@ def execute_send(arg):
     src = arg['src']
     dest = arg['dest']
     amount = arg['amount']
-    rep = arg['rep']
-    option = arg['option']
 
-    if not src or not dest or not amount:
-        print('You miss some argument!!!')
+    if not src:
+        print('You have to provide sender address!!!')
         return
+
+    elif not dest:
+        print('You have to provide receiver address!!!')
+        return
+
+    elif not amount:
+        print('You have to provide amount of value to be transferred!!!')
+        return
+
+    rep = arg['rep']
 
     if not rep:
         rep = 1
@@ -199,9 +218,13 @@ def execute_send(arg):
     for i in range(rep):
         blockchain.add_transaction(src, dest, amount)
 
+    option = arg['option']
+
     # Force the blockchain to group transactions into a block
     if option and option == 'force':
         blockchain.fire_transactions(blockchain._root_address)
+    elif option and option != 'force':
+        print('The option is invalid!!!')
 
 
 @ execute.register('printchain')

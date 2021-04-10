@@ -1,0 +1,6 @@
+base58==2.1.0
+click==7.1.2
+dill==0.3.3
+ecdsa==0.16.1
+pycryptodome==3.10.1
+six==1.15.0
