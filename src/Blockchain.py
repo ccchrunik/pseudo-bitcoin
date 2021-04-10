@@ -906,17 +906,19 @@ class Blockchain:
         else:
             if height == 0:
                 print('Print nothing!')
-            elif height > len(blockchain._blocks):
+            elif height > len(self._blocks):
                 print(
-                    'Invalid Command: The height must be less than or equal to the height of the blockchain !!!')
+                    'The height must be less than or equal to the height of the blockchain !!!')
             else:
                 if direction and direction == 'back':
-                    size = len(blockchain._blocks)
+                    size = len(self._blocks)
                     for i in range(size - 1, size - height - 1, -1):
-                        print(blockchain._blocks[i])
+                        print(self._blocks[i])
+                elif direction and direction == 'unique':
+                    print(self._blocks[height])
                 else:
                     for i in range(height):
-                        print(blockchain._blocks[i])
+                        print(self._blocks[i])
 
 
 def test_save_blocks():

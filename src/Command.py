@@ -70,7 +70,7 @@ def execute_create_blockchain(arg):
     else:
         name = arg['name']
         # Check the argument has the name option
-        if not name:
+        if name is None:
             print('You have to provide the root user name!!!')
             return
 
@@ -94,7 +94,7 @@ def execute_create_user(arg):
 
     username = arg['username']
 
-    if not username:
+    if username is None:
         print('You have to provide an username!!!')
         return
 
@@ -120,11 +120,11 @@ def execute_add_balance(arg):
     address = arg['address']
     balance = arg['balance']
 
-    if not address:
+    if address is None:
         print('You have to give you account address!!!')
 
-    elif not balance:
-        print('You have to give the "balance" to be incremented!!!')
+    elif balance is None:
+        print('You have to give the balance!!!')
 
     elif not blockchain._wallet_pool.has_address(address):
         print(f'The address {address} does not exist!!!')
@@ -134,6 +134,7 @@ def execute_add_balance(arg):
 
     else:
         blockchain.increment_balance(address, balance)
+        print(f'Add value {balance} to {address}!!!')
 
     return
 
@@ -152,7 +153,7 @@ def execute_get_balance(arg):
 
     address = arg['address']
 
-    if not address:
+    if address is None:
         print('You have to give you account address!!!')
 
     elif not blockchain._wallet_pool.has_address(address):
@@ -194,21 +195,25 @@ def execute_send(arg):
     dest = arg['dest']
     amount = arg['amount']
 
-    if not src:
+    if src is None:
         print('You have to provide sender address!!!')
         return
 
-    elif not dest:
+    elif dest is None:
         print('You have to provide receiver address!!!')
         return
 
-    elif not amount:
+    elif amount is None:
         print('You have to provide amount of value to be transferred!!!')
+        return
+
+    elif amount <= 0:
+        print('Amount of value must be greater than 0!!!')
         return
 
     rep = arg['rep']
 
-    if not rep:
+    if rep is None:
         rep = 1
 
     elif rep <= 0:
@@ -217,14 +222,15 @@ def execute_send(arg):
 
     for i in range(rep):
         blockchain.add_transaction(src, dest, amount)
+        print('Add a transaction to the blockchain!!!\n')
 
     option = arg['option']
 
     # Force the blockchain to group transactions into a block
-    if option and option == 'force':
+    if option is not None and option == 'force':
         blockchain.fire_transactions(blockchain._root_address)
-    elif option and option != 'force':
-        print('The option is invalid!!!')
+    elif option is not None and option != 'force':
+        print('The additional option is invalid!!!')
 
 
 @ execute.register('printchain')
@@ -253,7 +259,13 @@ def execute_print_block(arg):
     height = arg['height']
     direction = arg['direction']
 
-    blockchain.print_blocks(height, direction)
+    if height is None:
+        print('You must provide the height!!!')
+
+    else:
+        blockchain.print_blocks(height, direction)
+
+    return
 
 
 if __name__ == '__main__':

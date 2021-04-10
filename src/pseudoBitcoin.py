@@ -39,7 +39,11 @@ def main(cmd, name, address, username, balance, height, direction, src, dest, am
            'rep': rep,
            'option': option}
 
-    execute(arg)
+    try:
+        execute(arg)
+
+    except FileNotFoundError:
+        print("You haven't create the blockchain!!!")
 
 
 if __name__ == '__main__':
